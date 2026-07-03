@@ -17,6 +17,7 @@ import io
 import json
 import time
 import zipfile
+from datetime import datetime
 from pathlib import Path
 from typing import Any
 
@@ -140,6 +141,18 @@ class MinerUClient:
                 raise ParseFailed(f"mineru zip download failed: {exc}") from exc
 
         zip_bytes = resp.content
+
+        # 调试用：把 zip 落盘到 data/mineru_cache/，便于排查 MinerU 实际返回结构
+        try:
+            cache_root = Path("data/mineru_cache")
+            cache_root.mkdir(parents=True, exist_ok=True)
+            stamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+            cache_path = cache_root / f"mineru_{stamp}.zip"
+            cache_path.write_bytes(zip_bytes)
+            logger.info(f"mineru zip cached at {cache_path} ({len(zip_bytes)} bytes)")
+        except Exception as exc:
+            logger.debug(f"mineru zip cache failed: {exc!r}")
+
         results: dict[str, Any] = {}
         try:
             with zipfile.ZipFile(io.BytesIO(zip_bytes)) as zf:

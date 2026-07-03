@@ -41,6 +41,14 @@ def parse_mineru_result(
         logger.warning("mineru result contains no content_list_v2 items")
         return []
 
+    # 诊断：统计所有 type 分布，便于发现未知类型
+    type_counter: dict[str, int] = {}
+    for it in items:
+        if isinstance(it, dict):
+            t = it.get("type") or it.get("block_type") or "<missing>"
+            type_counter[t] = type_counter.get(t, 0) + 1
+    logger.info(f"mineru items type distribution: {type_counter}")
+
     title_records = _collect_title_records(items)
 
     chunks: list[Chunk] = []
@@ -50,7 +58,7 @@ def parse_mineru_result(
     for item in items:
         if not isinstance(item, dict):
             continue
-        mineru_type = item.get("type")
+        mineru_type = item.get("type") or item.get("block_type")
         category = mc.map_type_to_category(mineru_type)
         if category is None:
             continue
@@ -58,7 +66,10 @@ def parse_mineru_result(
         page_idx = int(item.get("page_idx", 0) or 0)
         page = page_idx + 1
         bbox = _coerce_bbox(item.get("bbox"))
+        # text_level 优先 item 顶层，其次 v2 的 content.level
         text_level = item.get("text_level") or item.get("level")
+        if text_level is None and isinstance(item.get("content"), dict):
+            text_level = item["content"].get("level")
 
         if category == mc.CATEGORY_TITLE:
             title_text = _extract_text(item.get("content"))
@@ -262,17 +273,53 @@ def _rebuild_path_to_level(title_records: list[dict[str, Any]], winner: dict[str
 
 
 def _extract_content_list(raw: Any) -> list[dict[str, Any]]:
+    """从 MinerU JSON 提取扁平 block 列表。
+
+    MinerU v2 实际结构：list of page，每页是 list of block。
+    本函数将二维结构 flatten 成一维 block 列表，并给每个 block 注入 page_idx。
+    同时兼容 v1（扁平 list）与 dict 包装形式。
+    """
+
+    def _harvest(maybe_list: Any) -> list[dict[str, Any]]:
+        out: list[dict[str, Any]] = []
+        if not isinstance(maybe_list, list):
+            return out
+        for entry in maybe_list:
+            if isinstance(entry, dict):
+                out.append(entry)
+            elif isinstance(entry, list):
+                out.extend(_harvest(entry))
+        return out
+
+    items: list[dict[str, Any]] = []
     if isinstance(raw, list):
-        return [item for item in raw if isinstance(item, dict)]
-    if isinstance(raw, dict):
-        for key in ("content_list_v2", "content_list", "list"):
+        items = _harvest(raw)
+    elif isinstance(raw, dict):
+        # client.py 返回 dict 的 key 可能带 uuid 前缀（"xxx_content_list_v2"），
+        # 也可能是规范名（"content_list_v2"）。按 key 后缀匹配优先取 v2。
+        candidate_keys = sorted(
+            (k for k in raw.keys() if isinstance(raw.get(k), list)),
+            key=lambda k: (
+                0 if k.endswith("_content_list_v2") or k == "content_list_v2" else
+                1 if k.endswith("_content_list") or k == "content_list" else
+                2 if k in {"list"} else 9
+            ),
+        )
+        for key in candidate_keys:
             value = raw.get(key)
             if isinstance(value, list):
-                return [item for item in value if isinstance(item, dict)]
-        for value in raw.values():
-            if isinstance(value, list) and value and isinstance(value[0], dict):
-                return value
-    return []
+                items = _harvest(value)
+                if items:
+                    break
+
+    # 给每个 block 注入 page_idx（v2 中 page_idx 在外层 page dict 上，flatten 时丢失）
+    current_page = 0
+    for item in items:
+        if "page_idx" not in item:
+            item["page_idx"] = current_page
+        else:
+            current_page = item["page_idx"]
+    return items
 
 
 def _coerce_bbox(bbox: Any) -> tuple[float, float, float, float] | None:
@@ -432,17 +479,53 @@ __all__ = ["parse_mineru_result"]
 
 
 def _extract_content_list(raw: Any) -> list[dict[str, Any]]:
+    """从 MinerU JSON 提取扁平 block 列表。
+
+    MinerU v2 实际结构：list of page，每页是 list of block。
+    本函数将二维结构 flatten 成一维 block 列表，并给每个 block 注入 page_idx。
+    同时兼容 v1（扁平 list）与 dict 包装形式。
+    """
+
+    def _harvest(maybe_list: Any) -> list[dict[str, Any]]:
+        out: list[dict[str, Any]] = []
+        if not isinstance(maybe_list, list):
+            return out
+        for entry in maybe_list:
+            if isinstance(entry, dict):
+                out.append(entry)
+            elif isinstance(entry, list):
+                out.extend(_harvest(entry))
+        return out
+
+    items: list[dict[str, Any]] = []
     if isinstance(raw, list):
-        return [item for item in raw if isinstance(item, dict)]
-    if isinstance(raw, dict):
-        for key in ("content_list_v2", "content_list", "list"):
+        items = _harvest(raw)
+    elif isinstance(raw, dict):
+        # client.py 返回 dict 的 key 可能带 uuid 前缀（"xxx_content_list_v2"），
+        # 也可能是规范名（"content_list_v2"）。按 key 后缀匹配优先取 v2。
+        candidate_keys = sorted(
+            (k for k in raw.keys() if isinstance(raw.get(k), list)),
+            key=lambda k: (
+                0 if k.endswith("_content_list_v2") or k == "content_list_v2" else
+                1 if k.endswith("_content_list") or k == "content_list" else
+                2 if k in {"list"} else 9
+            ),
+        )
+        for key in candidate_keys:
             value = raw.get(key)
             if isinstance(value, list):
-                return [item for item in value if isinstance(item, dict)]
-        for value in raw.values():
-            if isinstance(value, list) and value and isinstance(value[0], dict):
-                return value
-    return []
+                items = _harvest(value)
+                if items:
+                    break
+
+    # 给每个 block 注入 page_idx（v2 中 page_idx 在外层 page dict 上，flatten 时丢失）
+    current_page = 0
+    for item in items:
+        if "page_idx" not in item:
+            item["page_idx"] = current_page
+        else:
+            current_page = item["page_idx"]
+    return items
 
 
 def _coerce_bbox(bbox: Any) -> tuple[float, float, float, float] | None:
@@ -456,6 +539,18 @@ def _coerce_bbox(bbox: Any) -> tuple[float, float, float, float] | None:
 
 
 def _extract_text(content: Any) -> str:
+    """提取 block 的文本内容。
+
+    兼容 3 种 MinerU content 格式：
+    - v1 list of span: [{"type": "text", "content": "..."}]
+    - v2 dict 包装（按 block type 不同字段名）：
+        title: {"title_content": [...], "level": 1}
+        paragraph: {"paragraph_content": [...]}
+        equation_interline: {"math_content": "...", "math_type": "latex"}
+        list: {"list_type": "...", "list_items": [{"item_content": [...]}]}
+        chart: {"chart_caption": [...], "content": "..."}
+    - 纯字符串
+    """
     if not content:
         return ""
     if isinstance(content, str):
@@ -467,21 +562,46 @@ def _extract_text(content: Any) -> str:
                 continue
             span_type = span.get("type")
             if span_type and span_type not in mc.KEEP_SPAN_TYPES:
-                # 跳过 span 级别的图、表内嵌
                 continue
             text = span.get("content") or span.get("text") or ""
             if span_type in {"equation_inline", "inline_equation"} and text:
                 text = f"${text}$"
             if text:
                 parts.append(str(text))
+            # 兼容嵌套（list_items / item_content 等）
+            for nested_key in ("item_content", "list_items"):
+                nested = span.get(nested_key)
+                if nested:
+                    nested_text = _extract_text(nested)
+                    if nested_text:
+                        parts.append(nested_text)
         return " ".join(parts).strip()
     if isinstance(content, dict):
-        for key in ("text", "content", "math_content"):
+        # 公式（math_content 优先）
+        math = content.get("math_content")
+        if isinstance(math, str) and math:
+            return math.strip()
+        # v2 各 block type 的 content 子字段
+        for key in ("title_content", "paragraph_content", "caption_content", "chart_caption", "chart_footnote", "content", "text"):
             value = content.get(key)
             if isinstance(value, str) and value:
                 return value.strip()
             if isinstance(value, list):
-                return _extract_text(value)
+                text = _extract_text(value)
+                if text:
+                    return text
+        # list block：list_items 数组
+        items = content.get("list_items")
+        if isinstance(items, list):
+            return _extract_text(items)
+        # 兜底：递归找任意 str list
+        for value in content.values():
+            if isinstance(value, str) and value:
+                return value.strip()
+            if isinstance(value, list):
+                text = _extract_text(value)
+                if text:
+                    return text
     return ""
 
 
