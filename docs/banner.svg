@@ -44,9 +44,9 @@
   <text x="220" y="105" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif"
         font-size="64" font-weight="700" fill="url(#text)" letter-spacing="-1.5">QuillRAG</text>
 
-  <!-- 副标题（英文） -->
+  <!-- 副标题（英文，缩短避免超出 viewBox） -->
   <text x="222" y="138" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif"
-        font-size="15" font-weight="400" fill="#8b949e">Independent RAG service · MinerU PDF parsing · Hybrid retrieval · Cross-Encoder rerank</text>
+        font-size="15" font-weight="400" fill="#8b949e">Independent RAG · PDF parsing · Hybrid retrieval · Rerank</text>
 
   <!-- 底部 tagline（中文） -->
   <text x="222" y="162" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif"
