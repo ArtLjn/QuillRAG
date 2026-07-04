@@ -1,9 +1,12 @@
 [project]
-name = "rag-service"
-version = "0.1.0"
-description = "RAG as an independent service: PDF parsing, hybrid retrieval, and Cross-Encoder reranking."
+name = "quillrag"
+version = "0.3.3"
+description = "QuillRAG — Independent RAG service with MinerU PDF parsing, hybrid retrieval, and Cross-Encoder reranking."
 requires-python = ">=3.11"
 readme = "README.md"
+license = { text = "MIT" }
+authors = [{ name = "ArtLjn" }]
+keywords = ["rag", "retrieval-augmented-generation", "fastapi", "qdrant", "mineru", "hybrid-search", "cross-encoder", "pdf-parsing"]
 dependencies = [
   "fastapi>=0.115.0",
   "uvicorn[standard]>=0.30.0",

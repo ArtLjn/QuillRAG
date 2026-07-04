@@ -1,4 +1,4 @@
-# rag-service 上线前验证 SOP
+# quillrag 上线前验证 SOP
 
 > 本文档对应 tasks.md Group 14.3-14.7，依赖真实 Docker + Qdrant + 模型权重。
 > 在 macOS/Linux 主机执行；预计耗时 30-60 分钟（首次拉模型较慢）。
@@ -6,13 +6,13 @@
 ## 前置条件
 
 - Docker 24+ 与 docker-compose
-- 至少 8GB 可用内存（rag-service ~4GB + Qdrant ~500MB + 主系统 ~1GB）
+- 至少 8GB 可用内存（quillrag ~4GB + Qdrant ~500MB + 主系统 ~1GB）
 - 网络可访问 Docker Hub 与 HuggingFace（首次拉模型约 2GB）
 
 ## 14.3 docker-compose 启动
 
 ```bash
-cd rag-service
+cd quillrag
 cp .env.example .env
 docker-compose up -d
 sleep 60  # 等待模型首次加载
@@ -25,12 +25,12 @@ curl http://localhost:8001/health
 - `components.qdrant=ok`、`components.embedder=ok`
 
 **排查**：
-- `docker-compose logs rag-service` 查看 Embedder/Reranker 加载日志
+- `docker-compose logs quillrag` 查看 Embedder/Reranker 加载日志
 - `docker-compose logs qdrant` 查看向量库启动情况
 
 ## 14.4 灌入毕设演示 PDF
 
-准备 10 篇 PDF（建议放在 `rag-service/fixtures/` 下）：
+准备 10 篇 PDF（建议放在 `quillrag/fixtures/` 下）：
 
 ```bash
 # 创建 collection
@@ -80,10 +80,10 @@ docker-compose start qdrant
 模拟方式：临时把模型缓存目录改名，让 embedder 加载失败。
 
 ```bash
-docker-compose exec rag-service mv /opt/hf-cache /opt/hf-cache.bak
+docker-compose exec quillrag mv /opt/hf-cache /opt/hf-cache.bak
 
 # 触发新进程加载 embedder（重启服务）
-docker-compose restart rag-service
+docker-compose restart quillrag
 sleep 30
 
 # /retrieve mode=vector 应自动降级为 bm25
@@ -93,8 +93,8 @@ curl -X POST http://localhost:8001/retrieve \
 # 期望：HTTP 200，data.actual_mode=bm25，warning 含 vector_to_bm25_fallback
 
 # 恢复
-docker-compose exec rag-service mv /opt/hf-cache.bak /opt/hf-cache
-docker-compose restart rag-service
+docker-compose exec quillrag mv /opt/hf-cache.bak /opt/hf-cache
+docker-compose restart quillrag
 ```
 
 ## 14.7 性能验证
@@ -127,4 +127,4 @@ time curl -X POST http://localhost:8001/rerank \
 - [ ] 14.6 Embedder 不可用时 /retrieve 自动降级为 bm25
 - [ ] 14.7 单次检索 + 重排 < 2 秒
 
-每项验证完成后，在 `openspec/changes/add-rag-service-project/tasks.md` 对应行勾选。
+每项验证完成后，在 `openspec/changes/add-quillrag-project/tasks.md` 对应行勾选。

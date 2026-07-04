@@ -31,7 +31,7 @@ async def check_health() -> HealthResponse:
     status = "degraded" if degraded else "ok"
     warning = f"degraded components: {', '.join(degraded)}" if degraded else None
     if warning:
-        logger.warning(f"rag-service health degraded: {components}")
+        logger.warning(f"quillrag health degraded: {components}")
     return HealthResponse(status=status, components=components, warning=warning)
 
 

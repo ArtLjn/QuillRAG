@@ -1,4 +1,4 @@
-"""契约测试：定义主系统 RAG Client 期望的响应 schema，断言 rag-service 实际响应一致。
+"""契约测试：定义主系统 RAG Client 期望的响应 schema，断言 quillrag 实际响应一致。
 
 为下一个 change `switch-main-system-to-rag-client` 预留。
 """

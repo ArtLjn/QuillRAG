@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# 同步 rag-service 代码 + .env 到腾讯云生产机
+# 同步 quillrag 代码 + .env 到腾讯云生产机
 # 用法：bash deploy/server-sync.sh
 #
 # 排除项：.venv / data / __pycache__ / .git / 测试缓存
@@ -8,7 +8,7 @@
 set -euo pipefail
 
 REMOTE_HOST="${REMOTE_HOST:-root@43.155.217.74}"
-REMOTE_DIR="${REMOTE_DIR:-/root/workspace/rag-service}"
+REMOTE_DIR="${REMOTE_DIR:-/root/workspace/quillrag}"
 SSH_OPTS="-o StrictHostKeyChecking=no -o ConnectTimeout=10"
 
 cd "$(dirname "$0")/.."  # 切到项目根

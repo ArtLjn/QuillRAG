@@ -7,7 +7,7 @@
 from __future__ import annotations
 
 # ============================================================================
-# chunk category（rag-service 内部统一分类，与 ChunkMetadata.category 对齐）
+# chunk category（quillrag 内部统一分类，与 ChunkMetadata.category 对齐）
 # ============================================================================
 CATEGORY_TITLE = "title"
 CATEGORY_PARAGRAPH = "paragraph"
@@ -103,7 +103,7 @@ KEEP_SPAN_TYPES = {
 }
 
 # ============================================================================
-# MinerU 类型 → rag-service category 映射
+# MinerU 类型 → quillrag category 映射
 # ============================================================================
 TYPE_TO_CATEGORY: dict[str, str] = {
     # 标题

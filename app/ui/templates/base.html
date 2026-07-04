@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
-  <title>{{ title|default("rag-service") }}</title>
+  <title>{{ title|default("quillrag") }}</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <style>
     .chunk-content { white-space: pre-wrap; word-break: break-word; }
@@ -21,7 +21,7 @@
 <body class="bg-slate-50 text-slate-800 min-h-screen">
   <nav class="bg-slate-900 text-white shadow-md">
     <div class="max-w-7xl mx-auto px-6 py-4 flex items-center gap-6">
-      <a href="/ui/" class="text-xl font-bold tracking-tight">rag-service</a>
+      <a href="/ui/" class="text-xl font-bold tracking-tight">quillrag</a>
       <div class="flex gap-4 text-sm items-center">
         <a href="/ui/" class="hover:text-slate-300">Collections</a>
         <a href="/ui/ingest" class="bg-indigo-600 hover:bg-indigo-500 px-3 py-1.5 rounded text-white font-medium">+ 入库文档</a>
@@ -40,7 +40,7 @@
     {% block content %}{% endblock %}
   </main>
   <footer class="max-w-7xl mx-auto px-6 py-6 text-xs text-slate-400">
-    rag-service v0.3 · <a href="/docs" class="underline">API</a> · <a href="https://github.com/ArtLjn/NSQA" class="underline">inspired by airQA</a>
+    QuillRAG v0.3.3 · <a href="/docs" class="underline">API</a> · <a href="https://github.com/ArtLjn/NSQA" class="underline">inspired by airQA</a>
   </footer>
   {% block scripts %}{% endblock %}
 </body>

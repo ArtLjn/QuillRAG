@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # 首次部署：在腾讯云上安装依赖 + 启用 systemd 服务
-# 必须在服务器上跑（ssh root@43.155.217.74 'cd /root/workspace/rag-service && bash deploy/install.sh'）
+# 必须在服务器上跑（ssh root@43.155.217.74 'cd /root/workspace/quillrag && bash deploy/install.sh'）
 #
 # 做的事：
 # 1. apt 安装系统依赖（tesseract OCR、libgl、build-essential）
@@ -11,8 +11,8 @@
 
 set -euo pipefail
 
-APP_DIR="${APP_DIR:-/root/workspace/rag-service}"
-SERVICE_NAME="rag-service"
+APP_DIR="${APP_DIR:-/root/workspace/quillrag}"
+SERVICE_NAME="quillrag"
 cd "$APP_DIR"
 
 echo "▶ [1/6] apt 安装系统依赖（tesseract-ocr 中文 + libgl + build-essential）..."
@@ -61,7 +61,7 @@ echo "  ✓ 依赖安装完成"
 
 echo ""
 echo "▶ [4/6] 部署 systemd 单元..."
-cp -f deploy/rag-service.service /etc/systemd/system/
+cp -f deploy/quillrag.service /etc/systemd/system/
 systemctl daemon-reload
 systemctl enable "$SERVICE_NAME" >/dev/null 2>&1 || true
 echo "  ✓ systemd 已注册并 enable"

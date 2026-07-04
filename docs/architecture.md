@@ -1,10 +1,10 @@
-# rag-service 架构
+# quillrag 架构
 
 ## 模块边界
 
 ```
 ┌──────────────────────────────────────────────────────────────────┐
-│ rag-service (FastAPI, port 8001)                                 │
+│ quillrag (FastAPI, port 8001)                                 │
 │                                                                  │
 │  ┌─────────┐  ┌──────────┐  ┌──────────┐  ┌─────────────┐       │
 │  │ /parse  │  │ /ingest  │  │/retrieve │  │ /rerank     │       │
@@ -46,7 +46,7 @@
 模型在首次调用时后台线程加载，加载期间 `is_ready()=False`，`/health` 显示 `loading`。这避免服务启动阻塞 1-2 分钟。
 
 ### 3. 元数据独立 SQLite
-不复用主系统 MySQL，自带 SQLite（`storage/metadata_store.py`），让 rag-service 可独立部署给其他项目复用。
+不复用主系统 MySQL，自带 SQLite（`storage/metadata_store.py`），让 quillrag 可独立部署给其他项目复用。
 
 ### 4. 三种降级路径
 - Qdrant 不可用 → 503（让主系统走无 RAG 分支）

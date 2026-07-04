@@ -1,4 +1,4 @@
-# rag-service API 契约
+# quillrag API 契约
 
 > 版本：v0.1.0
 > 所有接口走 JSON，文件上传走 multipart

@@ -1,4 +1,4 @@
-# rag-service 开发/测试依赖
+# quillrag 开发/测试依赖
 # 安装：pip install -r requirements-dev.txt（会自动带 requirements.txt 的运行时依赖）
 
 -r requirements.txt

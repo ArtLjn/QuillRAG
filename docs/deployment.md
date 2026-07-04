@@ -1,8 +1,8 @@
-# rag-service 部署指南
+# quillrag 部署指南
 
 ## 单机部署（推荐毕设演示场景）
 
-最低配置：4 核 8G，能同时承载 rag-service + Qdrant + 主系统。
+最低配置：4 核 8G，能同时承载 quillrag + Qdrant + 主系统。
 
 ### 步骤
 
@@ -10,8 +10,8 @@
 
    ```bash
    cd /path/to/finished
-   # 假设 rag-service/ 已就位
-   cd rag-service
+   # 假设 quillrag/ 已就位
+   cd quillrag
    cp .env.example .env
    # 如需调整模型 / 端口，编辑 .env
    ```
@@ -30,7 +30,7 @@
    curl http://localhost:8001/health
    ```
 
-   预期返回 `{status: "ok", components: {...}}`。若 `status=degraded`，查看 `docker-compose logs rag-service` 定位。
+   预期返回 `{status: "ok", components: {...}}`。若 `status=degraded`，查看 `docker-compose logs quillrag` 定位。
 
 4. 创建 collection 与入库
 
@@ -61,8 +61,8 @@
 | 组件 | 内存 | 说明 |
 | --- | --- | --- |
 | Qdrant | ~500MB | 毕设 demo 数据（万级 chunk） |
-| rag-service | ~500MB | Embedding 走 HTTP 不占内存 |
-| rag-service + Reranker 模型 | ~2GB | bge-reranker-v2-m3（首次调用时懒加载） |
+| quillrag | ~500MB | Embedding 走 HTTP 不占内存 |
+| quillrag + Reranker 模型 | ~2GB | bge-reranker-v2-m3（首次调用时懒加载） |
 | 主系统 ai-agent-learning | ~1GB | 不含主系统 LLM 调用 |
 
 合计 4 核 4G 可承载（Reranker 未触发时）；Reranker 触发后峰值约 6G。
@@ -120,7 +120,7 @@ class RagClient:
 | 现象 | 排查方向 |
 | --- | --- |
 | `/health` qdrant=unavailable | 检查 Qdrant 容器：`docker-compose logs qdrant` |
-| `/retrieve` 慢 | 看 rag-service 日志，确认 Embedder 已加载；考虑关闭 HyDE |
+| `/retrieve` 慢 | 看 quillrag 日志，确认 Embedder 已加载；考虑关闭 HyDE |
 | `/ingest` 503 | Qdrant 不可用或网络分区 |
 | `/parse` 422 PARSE_FAILED | PDF 文件损坏，或 PyMuPDF 未正确安装 |
 | OCR 中文乱码 | tesseract-ocr-chi-sim 未装 |
@@ -128,7 +128,7 @@ class RagClient:
 ## 数据卷与备份
 
 - Qdrant 数据：docker volume `qdrant_data`，备份用 `docker run --rm -v qdrant_data:/data -v $(pwd):/backup alpine tar czf /backup/qdrant.tar.gz /data`
-- SQLite 元数据：`rag-service/data/rag_metadata.db`（容器内路径，建议挂载到 host）
+- SQLite 元数据：`quillrag/data/rag_metadata.db`（容器内路径，建议挂载到 host）
 
 ## 关停与回滚
 

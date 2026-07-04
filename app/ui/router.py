@@ -35,7 +35,7 @@ async def index(request: Request) -> HTMLResponse:
     return templates.TemplateResponse(
         request,
         "index.html",
-        {"collections": collections, "title": "rag-service · Collections"},
+        {"collections": collections, "title": "quillrag · Collections"},
     )
 
 

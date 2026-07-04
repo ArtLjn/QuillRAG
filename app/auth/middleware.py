@@ -151,7 +151,7 @@ class AuthMiddleware(BaseHTTPMiddleware):
                 "error_code": "UNAUTHORIZED",
                 "data": None,
             },
-            headers={"WWW-Authenticate": 'Bearer realm="rag-service", error="missing_token"'},
+            headers={"WWW-Authenticate": 'Bearer realm="quillrag", error="missing_token"'},
         )
 
 

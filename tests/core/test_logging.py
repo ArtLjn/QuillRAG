@@ -123,4 +123,4 @@ def test_json_formatter_outputs_valid_json() -> None:
     payload = json_mod.loads(output)
     assert payload["level"] == "ERROR"
     assert payload["msg"] == "error happened"
-    assert payload["service"] == "rag-service"
+    assert payload["service"] == "quillrag"

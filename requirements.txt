@@ -1,4 +1,4 @@
-# rag-service 运行时依赖（与 pyproject.toml [project.dependencies] 同步）
+# quillrag 运行时依赖（与 pyproject.toml [project.dependencies] 同步）
 # 安装：pip install -r requirements.txt
 # Python >= 3.11
 
@@ -36,3 +36,7 @@ sentence-transformers>=3.0.0        # 本地 CrossEncoder（PyTorch 重，568MB 
 # ---- 通用工具 ----
 loguru>=0.7.2                       # 日志
 numpy>=1.26.0                       # 向量数值计算
+
+# ---- 鉴权 ----
+bcrypt>=4.0.0                        # 密码哈希
+itsdangerous>=2.1.0                  # session cookie 签名

@@ -1,13 +1,13 @@
 #!/usr/bin/env bash
-# 远程控制 rag-service（在腾讯云上跑 systemctl）
+# 远程控制 quillrag（在腾讯云上跑 systemctl）
 # 用法：
 #   bash deploy/server-ctl.sh start|stop|restart|status|tail|logs|health|sync
 
 set -euo pipefail
 
 REMOTE_HOST="${REMOTE_HOST:-root@43.155.217.74}"
-REMOTE_DIR="${REMOTE_DIR:-/root/workspace/rag-service}"
-SERVICE_NAME="rag-service"
+REMOTE_DIR="${REMOTE_DIR:-/root/workspace/quillrag}"
+SERVICE_NAME="quillrag"
 SSH_OPTS="-o StrictHostKeyChecking=no -o ConnectTimeout=10"
 ACTION="${1:-status}"
 

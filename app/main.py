@@ -57,12 +57,12 @@ from app.ui.router import router as ui_router
 @asynccontextmanager
 async def lifespan(_: FastAPI) -> AsyncIterator[None]:
     logger.info(
-        f"starting rag-service port={settings.port} "
+        f"starting quillrag port={settings.port} "
         f"qdrant={redact_url(settings.qdrant_url)} "
         f"embedding={settings.embedding_model} reranker_provider={settings.reranker_provider} "
         f"mineru={'on' if settings.mineru_api_token else 'off'}"
     )
-    metrics.counter("rag_service_started", "service start count").inc()
+    metrics.counter("quillrag_started", "service start count").inc()
     try:
         from app.storage.metadata_store import MetadataStore
 
@@ -74,12 +74,12 @@ async def lifespan(_: FastAPI) -> AsyncIterator[None]:
 
     yield
 
-    logger.info("rag-service shutting down")
+    logger.info("quillrag shutting down")
 
 
 def create_app() -> FastAPI:
     app = FastAPI(
-        title="rag-service",
+        title="QuillRAG",
         version="0.1.0",
         description="独立 RAG 服务：PDF 复杂解析、混合检索、Cross-Encoder 重排",
         lifespan=lifespan,

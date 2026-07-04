@@ -1,4 +1,4 @@
-"""rag-service 业务异常基类与子类。
+"""quillrag 业务异常基类与子类。
 
 约定：
 - 抛 RagServiceError 子类时附带 `error_code` 与 `http_status`

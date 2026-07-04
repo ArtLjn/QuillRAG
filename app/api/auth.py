@@ -35,7 +35,7 @@ async def login_form(request: Request, next: str = "/ui/") -> HTMLResponse:
     return _templates.TemplateResponse(
         request,
         "login.html",
-        {"title": "登录 · rag-service", "next": next, "error": None},
+        {"title": "登录 · quillrag", "next": next, "error": None},
     )
 
 
@@ -53,7 +53,7 @@ async def login_submit(
         return _templates.TemplateResponse(
             request,
             "login.html",
-            {"title": "登录 · rag-service", "next": next, "error": "用户名或密码错误"},
+            {"title": "登录 · quillrag", "next": next, "error": "用户名或密码错误"},
             status_code=401,
         )
     response = RedirectResponse(url=next or "/ui/", status_code=303)

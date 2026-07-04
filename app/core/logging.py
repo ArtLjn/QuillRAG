@@ -40,7 +40,7 @@ def _env_tag() -> str:
 
 def _common_extra() -> dict[str, Any]:
     return {
-        "service": "rag-service",
+        "service": "quillrag",
         "version": "0.3.0",
         "env": _env_tag(),
         "request_id": current_request_id() or "-",
