@@ -26,13 +26,14 @@ from app.core.config import settings
 from app.core.logging import logger
 
 SESSION_COOKIE = "rag_session"
+# 公开路径（无需鉴权）：
+# - /health 健康检查（监控用）
+# - /ui/login /api/auth/login /api/auth/logout 登录链路
+# - / 根路径（重定向到 /ui/）
+# 注意：/docs /redoc /openapi.json 默认需鉴权（生产环境不暴露 API 结构）
+# 如需本地开发时公开 Swagger，设 AUTH_ENABLED=false 即可
 PUBLIC_PATHS = {
     "/health",
-    "/docs",
-    "/openapi.json",
-    "/redoc",
-    "/redoc/",
-    "/docs/oauth2-redirect",
     "/ui/login",
     "/api/auth/login",
     "/api/auth/logout",
@@ -120,8 +121,8 @@ class AuthMiddleware(BaseHTTPMiddleware):
             return await call_next(request)
 
         path = request.url.path
-        # 白名单（含 Swagger 静态资源）
-        if path in PUBLIC_PATHS or path.startswith("/docs") or path.startswith("/redoc"):
+        # 白名单（精确匹配 + 登录链路子路径）
+        if path in PUBLIC_PATHS or path.startswith("/api/auth/"):
             return await call_next(request)
 
         # 优先 X-API-Key（服务间）
