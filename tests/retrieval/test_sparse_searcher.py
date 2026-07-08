@@ -49,6 +49,41 @@ def test_search_returns_results_from_payload() -> None:
     assert results[0].score == 8.5
 
 
+def test_search_falls_back_when_collection_has_no_sparse_vector() -> None:
+    fake_points = [
+        SimpleNamespace(
+            id="doc1_0",
+            payload={
+                "content": "账号 锁定 登录 账号",
+                "doc_id": "doc1",
+                "chunk_index": 0,
+                "category": "paragraph",
+            },
+        ),
+        SimpleNamespace(
+            id="doc2_0",
+            payload={
+                "content": "退款 发票",
+                "doc_id": "doc2",
+                "chunk_index": 0,
+                "category": "paragraph",
+            },
+        ),
+    ]
+    fake_client = SimpleNamespace(
+        get_collection=lambda _collection: SimpleNamespace(
+            config=SimpleNamespace(params=SimpleNamespace(sparse_vectors=None))
+        ),
+        scroll=lambda **kwargs: (fake_points, None),
+    )
+
+    with patch.object(sparse_searcher, "get_client", return_value=fake_client):
+        results = sparse_searcher.search(collection="legacy", query="账号登录", top_k=5)
+
+    assert len(results) == 1
+    assert results[0].metadata.doc_id == "doc1"
+
+
 def test_search_raises_qdrant_unavailable_on_failure() -> None:
     from app.core.exceptions import QdrantUnavailable
 

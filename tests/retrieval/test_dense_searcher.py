@@ -64,6 +64,35 @@ def test_dense_search_passes_score_threshold_to_qdrant() -> None:
         )
     assert captured["score_threshold"] == 0.7
     assert captured["limit"] == 10
+    assert captured["using"] == "dense"
+
+
+def test_dense_search_omits_using_for_legacy_unnamed_vector() -> None:
+    captured: dict = {}
+
+    def fake_query_points(**kwargs):
+        captured.update(kwargs)
+        return SimpleNamespace(points=[])
+
+    fake_client = SimpleNamespace(
+        query_points=fake_query_points,
+        get_collection=lambda _collection: SimpleNamespace(
+            config=SimpleNamespace(
+                params=SimpleNamespace(
+                    vectors=SimpleNamespace(size=3072, distance="Cosine")
+                )
+            )
+        ),
+    )
+    with patch.object(dense_searcher, "get_client", return_value=fake_client):
+        dense_searcher.search(
+            collection="legacy",
+            query_vector=[0.1] * 4,
+            top_k=10,
+            score_threshold=0.7,
+        )
+
+    assert "using" not in captured
 
 
 def test_dense_search_raises_qdrant_unavailable_on_failure() -> None:

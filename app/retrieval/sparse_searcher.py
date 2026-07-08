@@ -74,6 +74,9 @@ def search(
         return []
 
     qdrant_filter = _build_filter(filters)
+    if not _has_sparse_vector(client, collection):
+        return _fallback_payload_search(client, collection, query, top_k, qdrant_filter)
+
     sparse_vector = qmodels.SparseVector(indices=sparse["indices"], values=sparse["values"]) if qmodels else sparse
 
     try:
@@ -90,6 +93,71 @@ def search(
         raise QdrantUnavailable(f"sparse search failed: {exc}") from exc
 
     return _hits_to_results(hits)
+
+
+def _has_sparse_vector(client: Any, collection: str) -> bool:
+    try:
+        sparse_vectors = client.get_collection(collection).config.params.sparse_vectors
+    except Exception:
+        return True
+    if isinstance(sparse_vectors, dict):
+        return SPARSE_VECTOR_NAME in sparse_vectors
+    return sparse_vectors is not None
+
+
+def _fallback_payload_search(
+    client: Any,
+    collection: str,
+    query: str,
+    top_k: int,
+    qdrant_filter: Any,
+) -> list[RetrieveResult]:
+    """旧 collection 没有 sparse 向量时，从 payload 拉文本做轻量词频检索。"""
+    query_tokens = tokenize(query)
+    if not query_tokens:
+        return []
+    try:
+        points, _ = client.scroll(
+            collection_name=collection,
+            scroll_filter=qdrant_filter,
+            limit=10000,
+            with_payload=True,
+            with_vectors=False,
+        )
+    except Exception as exc:
+        raise QdrantUnavailable(f"sparse fallback search failed: {exc}") from exc
+
+    scored: list[Any] = []
+    for point in points:
+        payload = getattr(point, "payload", None) or {}
+        content = payload.get("content", "") if isinstance(payload, dict) else ""
+        score = _term_score(query_tokens, content)
+        if score > 0:
+            scored.append(
+                type(
+                    "FallbackHit",
+                    (),
+                    {
+                        "id": getattr(point, "id", None),
+                        "score": score,
+                        "payload": dict(payload),
+                    },
+                )()
+            )
+    scored.sort(key=lambda item: item.score, reverse=True)
+    return _hits_to_results(scored[:top_k])
+
+
+def _term_score(query_tokens: list[str], content: str) -> float:
+    content_tokens = tokenize(content)
+    if not content_tokens:
+        return 0.0
+    content_set = set(content_tokens)
+    score = 0.0
+    for token in query_tokens:
+        if token in content_set:
+            score += 1.0 + content_tokens.count(token) / max(1, len(content_tokens))
+    return score
 
 
 def _build_filter(filters: dict[str, Any] | None) -> Any:
