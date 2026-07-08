@@ -1,0 +1,52 @@
+{"query":"账号被锁定登录不了怎么办？","collection":"ticket_knowledge","relevant":["itsm-login-account#0"],"tags":["login","account"]}
+{"query":"SSO 登录跳转后提示 403 应该怎么处理？","collection":"ticket_knowledge","relevant":["itsm-login-account#0","itsm-access-permission#0"],"tags":["sso","permission"]}
+{"query":"用户没有菜单权限，页面提示无权限，如何排查？","collection":"ticket_knowledge","relevant":["itsm-access-permission#0"],"tags":["permission","403"]}
+{"query":"API Key 调接口返回 403 是什么原因？","collection":"ticket_knowledge","relevant":["itsm-access-permission#0","itsm-api-gateway#0"],"tags":["api","403"]}
+{"query":"连接 VPN 后无法访问内网系统怎么办？","collection":"ticket_knowledge","relevant":["itsm-vpn-remote-access#0","itsm-network-connectivity#0"],"tags":["vpn","network"]}
+{"query":"系统访问很慢，怀疑是网络或 DNS 问题，应该检查什么？","collection":"ticket_knowledge","relevant":["itsm-network-connectivity#0"],"tags":["network","dns"]}
+{"query":"员工电脑频繁蓝屏如何处理？","collection":"ticket_knowledge","relevant":["itsm-endpoint-device#0"],"tags":["endpoint","device"]}
+{"query":"商业软件许可证过期，用户无法激活，怎么处理？","collection":"ticket_knowledge","relevant":["itsm-software-installation#0"],"tags":["software","license"]}
+{"query":"邮件发送失败并收到退信，需要收集哪些信息？","collection":"ticket_knowledge","relevant":["itsm-email-calendar#0"],"tags":["email"]}
+{"query":"会议室投屏失败影响客户会议，应该升级吗？","collection":"ticket_knowledge","relevant":["itsm-printer-meeting-room#0"],"tags":["meeting-room","priority"]}
+{"query":"数据库连接池耗尽导致接口超时怎么排查？","collection":"ticket_knowledge","relevant":["itsm-database-connection#0"],"tags":["database","timeout"]}
+{"query":"接口返回 429 Too Many Requests 应该如何回复用户？","collection":"ticket_knowledge","relevant":["itsm-api-gateway#0"],"tags":["api","rate-limit"]}
+{"query":"用户误删数据，需要恢复到昨天的版本，流程是什么？","collection":"ticket_knowledge","relevant":["itsm-backup-restore#0"],"tags":["backup","restore"]}
+{"query":"生产系统大面积 5xx，应该按什么故障级别处理？","collection":"ticket_knowledge","relevant":["itsm-major-incident#0"],"tags":["incident","p1","p0"]}
+{"query":"API Key 泄露后只删除聊天记录可以吗？","collection":"ticket_knowledge","relevant":["itsm-security-incident#0"],"tags":["security","secret"]}
+{"query":"发布后核心功能异常，应该先排查还是先回滚？","collection":"ticket_knowledge","relevant":["itsm-change-release#0"],"tags":["change","rollback"]}
+{"query":"Prometheus 告警一直触发但业务看起来正常，怎么判断是不是误报？","collection":"ticket_knowledge","relevant":["itsm-monitoring-alerts#0"],"tags":["monitoring","alert"]}
+{"query":"用户提供 trace_id 后，应该在哪些日志里定位接口异常？","collection":"ticket_knowledge","relevant":["itsm-log-analysis#0"],"tags":["log","trace"]}
+{"query":"Redis 内存打满导致登录会话异常，应该先检查什么？","collection":"ticket_knowledge","relevant":["itsm-cache-redis#0"],"tags":["redis","cache"]}
+{"query":"订单异步任务一直延迟，消息队列积压怎么处理？","collection":"ticket_knowledge","relevant":["itsm-message-queue#0"],"tags":["mq","async"]}
+{"query":"Kubernetes Pod CrashLoopBackOff，需要收集哪些信息？","collection":"ticket_knowledge","relevant":["itsm-kubernetes-pod#0"],"tags":["kubernetes","pod"]}
+{"query":"生产流水线镜像推送失败，可以跳过测试直接部署吗？","collection":"ticket_knowledge","relevant":["itsm-cicd-pipeline#0"],"tags":["cicd","deploy"]}
+{"query":"日志目录把磁盘占满了，哪些数据可以清理？","collection":"ticket_knowledge","relevant":["itsm-storage-quota#0"],"tags":["storage","quota"]}
+{"query":"大文件上传中断并返回对象存储 403，怎么排查？","collection":"ticket_knowledge","relevant":["itsm-file-upload-download#0"],"tags":["file","oss"]}
+{"query":"企业 SAML 登录失败，提示回调地址不匹配怎么办？","collection":"ticket_knowledge","relevant":["itsm-sso-identity-provider#0"],"tags":["sso","saml"]}
+{"query":"新员工账号已经创建但 AD 用户组没有同步，怎么处理？","collection":"ticket_knowledge","relevant":["itsm-ldap-ad-sync#0"],"tags":["ldap","ad"]}
+{"query":"员工手机丢失，需要远程擦除公司数据，流程是什么？","collection":"ticket_knowledge","relevant":["itsm-mobile-device-management#0"],"tags":["mdm","security"]}
+{"query":"页面空白但接口正常，可能是浏览器缓存还是前端资源问题？","collection":"ticket_knowledge","relevant":["itsm-browser-compatibility#0"],"tags":["browser","frontend"]}
+{"query":"Excel 报表导出很久没有完成，如何确认导出任务状态？","collection":"ticket_knowledge","relevant":["itsm-report-export#0"],"tags":["report","export"]}
+{"query":"支付成功但订单权益没有开通，应该查支付流水还是订单状态？","collection":"ticket_knowledge","relevant":["itsm-payment-billing#0"],"tags":["payment","billing"]}
+{"query":"发票税号填错了，已经开具后能直接修改吗？","collection":"ticket_knowledge","relevant":["itsm-invoice-tax#0"],"tags":["invoice","tax"]}
+{"query":"用户取消订阅后还被自动续费，退款应该怎么处理？","collection":"ticket_knowledge","relevant":["itsm-refund-subscription#0"],"tags":["refund","subscription"]}
+{"query":"客户投诉 SLA 超时并要求赔偿，需要走什么流程？","collection":"ticket_knowledge","relevant":["itsm-customer-complaint#0"],"tags":["complaint","sla"]}
+{"query":"新员工入职当天没有邮箱和 VPN 权限，应该检查哪些系统？","collection":"ticket_knowledge","relevant":["itsm-user-onboarding#0"],"tags":["onboarding","account"]}
+{"query":"离职账号仍然可以登录生产系统，应该如何升级？","collection":"ticket_knowledge","relevant":["itsm-user-offboarding#0"],"tags":["offboarding","security"]}
+{"query":"申请临时借用笔记本，需要绑定资产编号吗？","collection":"ticket_knowledge","relevant":["itsm-asset-management#0"],"tags":["asset","device"]}
+{"query":"采购软件许可证时，是否可以直接找供应商下单？","collection":"ticket_knowledge","relevant":["itsm-procurement-request#0"],"tags":["procurement","license"]}
+{"query":"用户要求删除个人信息，一线客服可以直接处理吗？","collection":"ticket_knowledge","relevant":["itsm-data-privacy-request#0"],"tags":["privacy","compliance"]}
+{"query":"邮件附件被 DLP 拦截，如何判断是误报还是敏感外发？","collection":"ticket_knowledge","relevant":["itsm-dlp-data-leak#0"],"tags":["dlp","security"]}
+{"query":"用户要求工单加急，优先级应该按什么标准判断？","collection":"ticket_knowledge","relevant":["itsm-sla-priority-routing#0"],"tags":["sla","priority"]}
+{"query":"RAG 没有命中任何知识库文档，AI 应该怎么处理？","collection":"ticket_knowledge","relevant":["itsm-knowledge-gap#0"],"tags":["rag","knowledge-gap"]}
+{"query":"AI 助手回复了错误排查步骤，怎样复核它检索到了什么？","collection":"ticket_knowledge","relevant":["itsm-ai-assistant-error#0"],"tags":["ai","review"]}
+{"query":"域名在外网解析正常但内网解析到旧地址，应该检查什么？","collection":"ticket_knowledge","relevant":["itsm-domain-dns#0"],"tags":["dns","domain"]}
+{"query":"HTTPS 证书过期导致登录页面打不开，应该更新哪里？","collection":"ticket_knowledge","relevant":["itsm-tls-certificate#0"],"tags":["tls","certificate"]}
+{"query":"负载均衡后端健康检查失败，是否需要摘除实例？","collection":"ticket_knowledge","relevant":["itsm-load-balancer#0"],"tags":["load-balancer","health-check"]}
+{"query":"定时任务重复执行导致订单状态异常，补偿前要确认什么？","collection":"ticket_knowledge","relevant":["itsm-job-scheduler#0"],"tags":["scheduler","compensation"]}
+{"query":"第三方短信接口超时，系统应该无限重试吗？","collection":"ticket_knowledge","relevant":["itsm-third-party-api#0"],"tags":["third-party","retry"]}
+{"query":"用户密码复杂度不通过，可以在工单里让他发密码截图吗？","collection":"ticket_knowledge","relevant":["itsm-password-policy#0"],"tags":["password","security"]}
+{"query":"员工更换手机后 MFA 无法验证，重置前需要做什么？","collection":"ticket_knowledge","relevant":["itsm-mfa-reset#0"],"tags":["mfa","reset"]}
+{"query":"扫描发现公网系统高危 CVE，需要先修还是先评估？","collection":"ticket_knowledge","relevant":["itsm-vulnerability-patching#0"],"tags":["vulnerability","patch"]}
+{"query":"活动前数据库连接数接近上限，如何做容量评估？","collection":"ticket_knowledge","relevant":["itsm-capacity-planning#0"],"tags":["capacity","database"]}
+{"query":"站内搜索搜不到刚创建的数据，可能是索引同步延迟吗？","collection":"ticket_knowledge","relevant":["itsm-search-index#0"],"tags":["search","index"]}

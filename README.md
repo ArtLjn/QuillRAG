@@ -97,7 +97,9 @@ See [`docs/architecture.md`](docs/architecture.md).
 
 ## 📊 Evaluation hooks
 
-Built-in metrics at `app/evaluation/metrics.py`: `recall_at_k`, `precision_at_k`, `mrr`, `ndcg_at_k`. Plug in your golden set for thesis experiments.
+Built-in retrieval evaluation includes `recall@k`, `precision@k`, `MRR`, `NDCG@k`, and `hit_rate`.
+Use `scripts/eval_retrieval.py` with a JSONL golden set, then read reports via `/evaluation/latest`.
+See [`docs/evaluation.md`](docs/evaluation.md).
 
 ## 📄 License
 

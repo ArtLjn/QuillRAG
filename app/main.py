@@ -36,6 +36,7 @@ from fastapi.responses import JSONResponse, RedirectResponse
 
 from app.api import (
     collections_router,
+    evaluation_router,
     health_router,
     ingest_router,
     parse_router,
@@ -102,6 +103,7 @@ def create_app() -> FastAPI:
     app.include_router(retrieve_router)
     app.include_router(rerank_router)
     app.include_router(collections_router)
+    app.include_router(evaluation_router)
     app.include_router(ui_router)
 
     @app.get("/", include_in_schema=False)

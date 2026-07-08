@@ -18,6 +18,7 @@ from fastapi.responses import HTMLResponse
 from fastapi.templating import Jinja2Templates
 from qdrant_client.http import models as qmodels
 
+from app.evaluation.runner import load_latest_report
 from app.services import collection_service
 from app.services.health_service import check_health
 from app.storage.collection_manager import ensure_collection_or_raise
@@ -136,6 +137,20 @@ async def ingest_form(request: Request) -> HTMLResponse:
         {
             "title": "入库新文档",
             "collections": collection_service.list_all(),
+        },
+    )
+
+
+@router.get("/evaluation", response_class=HTMLResponse)
+async def evaluation_dashboard(request: Request) -> HTMLResponse:
+    report = load_latest_report()
+    return templates.TemplateResponse(
+        request,
+        "evaluation.html",
+        {
+            "title": "RAG 召回评测",
+            "report": report,
+            "available": report is not None,
         },
     )
 

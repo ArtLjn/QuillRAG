@@ -97,7 +97,9 @@ HTTP → AuthMiddleware → RequestLoggingMiddleware
 
 ## 📊 评估指标
 
-内置 `app/evaluation/metrics.py`：`recall_at_k` / `precision_at_k` / `mrr` / `ndcg_at_k`。毕设论文实验直接对接 golden set 即可。
+内置检索评测：`recall@k` / `precision@k` / `MRR` / `NDCG@k` / `hit_rate`。
+使用 `scripts/eval_retrieval.py` 对 JSONL golden set 一键评测，并可通过 `/evaluation/latest` 读取最新报告。
+详见 [`docs/evaluation.md`](docs/evaluation.md)。
 
 ## 📄 License
 
