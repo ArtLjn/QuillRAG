@@ -9,6 +9,7 @@ import pytest
 
 from app.core.exceptions import EmbedderUnavailable, QdrantUnavailable
 from app.models.chunk import ChunkMetadata
+from app.models.document import DocumentRecord
 from app.models.query import RetrieveMode, RetrieveResult
 from app.services import retrieve_service
 
@@ -46,6 +47,59 @@ def test_bm25_mode_returns_results_without_embedder(monkeypatch: pytest.MonkeyPa
     assert mode == RetrieveMode.BM25
     assert results == sparse
     assert warning is None
+
+
+def test_retrieve_filters_deleted_documents_when_metadata_exists(tmp_path) -> None:
+    from datetime import datetime
+
+    from app.storage.metadata_store import MetadataStore
+
+    store = MetadataStore(db_path=str(tmp_path / "retrieve.db"))
+    store.init_schema()
+    store.upsert_document(
+        DocumentRecord(
+            doc_id="alive",
+            collection="c",
+            chunk_count=1,
+            content_hash="h",
+            ingested_at=datetime.utcnow(),
+        )
+    )
+    sparse = [_result("deleted", 0, 5.0), _result("alive", 0, 4.0)]
+
+    with patch("app.services.retrieve_service.MetadataStore", return_value=store), \
+         patch("app.retrieval.sparse_searcher.search", lambda **kw: sparse):
+        results, _, _ = asyncio.get_event_loop().run_until_complete(
+            retrieve_service.retrieve(
+                query="q",
+                collection="c",
+                mode=RetrieveMode.BM25,
+                top_k=5,
+            )
+        )
+
+    assert [result.doc_id for result in results] == ["alive"]
+
+
+def test_retrieve_keeps_results_when_collection_has_no_metadata_records(tmp_path) -> None:
+    from app.storage.metadata_store import MetadataStore
+
+    store = MetadataStore(db_path=str(tmp_path / "empty.db"))
+    store.init_schema()
+    sparse = [_result("legacy", 0, 5.0)]
+
+    with patch("app.services.retrieve_service.MetadataStore", return_value=store), \
+         patch("app.retrieval.sparse_searcher.search", lambda **kw: sparse):
+        results, _, _ = asyncio.get_event_loop().run_until_complete(
+            retrieve_service.retrieve(
+                query="q",
+                collection="legacy",
+                mode=RetrieveMode.BM25,
+                top_k=5,
+            )
+        )
+
+    assert [result.doc_id for result in results] == ["legacy"]
 
 
 def test_vector_mode_falls_back_to_bm25_when_embedder_unavailable(monkeypatch: pytest.MonkeyPatch) -> None:

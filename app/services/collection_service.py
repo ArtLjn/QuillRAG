@@ -68,8 +68,8 @@ def delete_document(collection: str, doc_id: str, store: MetadataStore | None = 
     existing = store.get_document(doc_id, collection)
     if not existing:
         raise DocumentNotFound(f"document {doc_id} not found in collection {collection}")
-    deleted = store.delete_document(doc_id, collection)
     points_removed = delete_document_points(collection, doc_id)
+    deleted = store.delete_document(doc_id, collection)
     logger.info(f"deleted document {doc_id} from {collection}: meta={deleted} points={points_removed}")
     return {
         "doc_id": doc_id,

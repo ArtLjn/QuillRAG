@@ -72,3 +72,31 @@ def test_delete_document_raises_when_doc_missing(tmp_path) -> None:
          patch("app.services.collection_service.MetadataStore", return_value=store):
         with pytest.raises(DocumentNotFound):
             collection_service.delete_document("c1", "missing")
+
+
+def test_delete_document_keeps_metadata_when_qdrant_delete_fails(tmp_path) -> None:
+    from datetime import datetime
+
+    from app.core.exceptions import QdrantUnavailable
+    from app.models.document import DocumentRecord
+    from app.storage.metadata_store import MetadataStore
+
+    store = MetadataStore(db_path=str(tmp_path / "keep.db"))
+    store.init_schema()
+    store.upsert_document(
+        DocumentRecord(
+            doc_id="d1",
+            collection="c1",
+            chunk_count=1,
+            content_hash="h",
+            ingested_at=datetime.utcnow(),
+        )
+    )
+
+    with patch("app.services.collection_service.collection_exists", return_value=True), \
+         patch("app.services.collection_service.MetadataStore", return_value=store), \
+         patch("app.services.collection_service.delete_document_points", side_effect=QdrantUnavailable("down")):
+        with pytest.raises(QdrantUnavailable):
+            collection_service.delete_document("c1", "d1")
+
+    assert store.get_document("d1", "c1") is not None
