@@ -8,6 +8,7 @@ from unittest.mock import patch
 
 import pytest
 
+from app.models.chunk import Chunk, ChunkMetadata
 from app.services import ingest_service
 from app.storage.metadata_store import MetadataStore
 
@@ -55,6 +56,73 @@ def test_ingest_writes_chunks_and_metadata(store: MetadataStore) -> None:
     record = store.get_document(result["doc_id"], "c1")
     assert record is not None
     assert record.chunk_count == result["chunk_count"]
+
+
+def test_write_to_qdrant_uses_unnamed_vector_for_legacy_collection() -> None:
+    upsert_calls: list = []
+    fake_client = SimpleNamespace(
+        get_collection=lambda _collection: SimpleNamespace(
+            config=SimpleNamespace(params=SimpleNamespace(vectors=SimpleNamespace(size=3, distance="Cosine")))
+        ),
+        upsert=lambda **kwargs: upsert_calls.append(kwargs) or None,
+    )
+    chunks = [Chunk(content="legacy chunk", metadata=ChunkMetadata(doc_id="doc", chunk_index=0))]
+
+    with patch("app.services.ingest_service.get_client", return_value=fake_client):
+        asyncio.get_event_loop().run_until_complete(
+            ingest_service._write_to_qdrant("legacy", "doc", chunks, embedder=FakeEmbedder())
+        )
+
+    point = upsert_calls[0]["points"][0]
+    assert point.vector == [0.1, 0.2, 0.3]
+
+
+def test_write_to_qdrant_uses_named_dense_and_sparse_for_current_collection() -> None:
+    upsert_calls: list = []
+    fake_client = SimpleNamespace(
+        get_collection=lambda _collection: SimpleNamespace(
+            config=SimpleNamespace(
+                params=SimpleNamespace(
+                    vectors={"dense": SimpleNamespace(size=3, distance="Cosine")},
+                    sparse_vectors={"text-sparse": SimpleNamespace()},
+                )
+            )
+        ),
+        upsert=lambda **kwargs: upsert_calls.append(kwargs) or None,
+    )
+    chunks = [Chunk(content="当前 chunk", metadata=ChunkMetadata(doc_id="doc", chunk_index=0))]
+
+    with patch("app.services.ingest_service.get_client", return_value=fake_client):
+        asyncio.get_event_loop().run_until_complete(
+            ingest_service._write_to_qdrant("current", "doc", chunks, embedder=FakeEmbedder())
+        )
+
+    point = upsert_calls[0]["points"][0]
+    assert set(point.vector) == {"dense", "text-sparse"}
+
+
+def test_write_to_qdrant_omits_sparse_when_collection_has_no_sparse_vector() -> None:
+    upsert_calls: list = []
+    fake_client = SimpleNamespace(
+        get_collection=lambda _collection: SimpleNamespace(
+            config=SimpleNamespace(
+                params=SimpleNamespace(
+                    vectors={"dense": SimpleNamespace(size=3, distance="Cosine")},
+                    sparse_vectors=None,
+                )
+            )
+        ),
+        upsert=lambda **kwargs: upsert_calls.append(kwargs) or None,
+    )
+    chunks = [Chunk(content="dense only", metadata=ChunkMetadata(doc_id="doc", chunk_index=0))]
+
+    with patch("app.services.ingest_service.get_client", return_value=fake_client):
+        asyncio.get_event_loop().run_until_complete(
+            ingest_service._write_to_qdrant("dense_only", "doc", chunks, embedder=FakeEmbedder())
+        )
+
+    point = upsert_calls[0]["points"][0]
+    assert set(point.vector) == {"dense"}
 
 
 def test_ingest_skips_when_content_hash_unchanged(store: MetadataStore) -> None:

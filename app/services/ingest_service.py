@@ -137,6 +137,8 @@ async def _write_to_qdrant(
             f"embedding count mismatch: chunks={len(chunks)} vectors={len(vectors)}"
         )
 
+    client = get_client()
+    dense_vector_name, has_sparse_vector = _resolve_collection_vector_layout(client, collection)
     points: list[qmodels.PointStruct] = []
     for chunk, vector in zip(chunks, vectors, strict=True):
         sparse = _build_payload_sparse(chunk.content)
@@ -145,15 +147,11 @@ async def _write_to_qdrant(
         points.append(
             qmodels.PointStruct(
                 id=point_id,
-                vector={
-                    DENSE_VECTOR_NAME: vector,
-                    SPARSE_VECTOR_NAME: sparse,
-                },
+                vector=_build_point_vector(vector, sparse, dense_vector_name, has_sparse_vector),
                 payload=payload,
             )
         )
 
-    client = get_client()
     try:
         client.upsert(collection_name=collection, points=points, wait=True)
     except Exception as exc:
@@ -176,6 +174,51 @@ def _build_payload_sparse(text: str) -> qmodels.SparseVector:
         indices=list(sparse["indices"]),
         values=list(sparse["values"]),
     )
+
+
+def _resolve_collection_vector_layout(client: Any, collection: str) -> tuple[str | None, bool]:
+    """返回 dense 向量名与 sparse 支持状态。
+
+    旧 collection 可能使用 Qdrant 匿名 dense 向量，此时 dense 名称为 None，
+    upsert 必须直接写 list，不能写 {"dense": vector}。
+    """
+    try:
+        params = client.get_collection(collection).config.params
+    except Exception:
+        return DENSE_VECTOR_NAME, True
+
+    vectors = getattr(params, "vectors", None)
+    if isinstance(vectors, dict):
+        if DENSE_VECTOR_NAME in vectors:
+            dense_vector_name = DENSE_VECTOR_NAME
+        elif len(vectors) == 1:
+            dense_vector_name = next(iter(vectors.keys()))
+        else:
+            dense_vector_name = DENSE_VECTOR_NAME
+    else:
+        dense_vector_name = None
+
+    sparse_vectors = getattr(params, "sparse_vectors", None)
+    if isinstance(sparse_vectors, dict):
+        has_sparse_vector = SPARSE_VECTOR_NAME in sparse_vectors
+    else:
+        has_sparse_vector = sparse_vectors is not None
+    return dense_vector_name, has_sparse_vector
+
+
+def _build_point_vector(
+    dense: list[float],
+    sparse: qmodels.SparseVector,
+    dense_vector_name: str | None,
+    has_sparse_vector: bool,
+) -> list[float] | dict[str, Any]:
+    if dense_vector_name is None:
+        return dense
+
+    vector: dict[str, Any] = {dense_vector_name: dense}
+    if has_sparse_vector:
+        vector[SPARSE_VECTOR_NAME] = sparse
+    return vector
 
 
 def assert_collection_available(collection: str) -> None:
