@@ -21,6 +21,7 @@ Qdrant Python SDK 自 1.10 起提供 `client.query_points(..., sparse_vector=...
 
 from __future__ import annotations
 
+import hashlib
 from typing import Any
 
 import jieba
@@ -57,8 +58,9 @@ def build_sparse_vector(text: str) -> dict[str, list[int] | list[float]]:
 
 
 def _hash_index(token: str) -> int:
-    """简单哈希到 [0, 2^31)。Qdrant 要求 uint32 索引。"""
-    return abs(hash(token)) % (2**31)
+    """稳定哈希到 [0, 2^31)。Qdrant 要求 uint32 索引。"""
+    digest = hashlib.md5(token.encode("utf-8")).digest()
+    return int.from_bytes(digest[:4], "big") % (2**31)
 
 
 def search(

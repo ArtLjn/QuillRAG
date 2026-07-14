@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import hashlib
 from types import SimpleNamespace
 from unittest.mock import patch
 
@@ -20,6 +21,14 @@ def test_build_sparse_vector_returns_indices_and_values() -> None:
     assert isinstance(sv["values"], list)
     assert len(sv["indices"]) == len(sv["values"])
     assert all(v >= 1.0 for v in sv["values"])
+
+
+def test_hash_index_is_stable_md5_derived() -> None:
+    token = "API Key"
+    digest = hashlib.md5(token.encode("utf-8")).digest()
+    expected = int.from_bytes(digest[:4], "big") % (2**31)
+
+    assert sparse_searcher._hash_index(token) == expected
 
 
 def test_build_sparse_vector_handles_empty_string() -> None:
