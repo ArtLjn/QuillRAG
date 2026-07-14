@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from types import SimpleNamespace
 from unittest.mock import patch
 
 import pytest
@@ -100,3 +101,64 @@ def test_delete_document_keeps_metadata_when_qdrant_delete_fails(tmp_path) -> No
             collection_service.delete_document("c1", "d1")
 
     assert store.get_document("d1", "c1") is not None
+
+
+def test_prune_orphan_points_removes_points_without_metadata(tmp_path) -> None:
+    from datetime import datetime
+
+    from app.models.document import DocumentRecord
+    from app.storage.metadata_store import MetadataStore
+
+    store = MetadataStore(db_path=str(tmp_path / "prune.db"))
+    store.init_schema()
+    store.upsert_document(
+        DocumentRecord(
+            doc_id="alive",
+            collection="c1",
+            chunk_count=1,
+            content_hash="h",
+            ingested_at=datetime.utcnow(),
+        )
+    )
+
+    deleted: list = []
+    fake_client = SimpleNamespace(
+        scroll=lambda **_: (
+            [
+                SimpleNamespace(id="p1", payload={"doc_id": "alive"}),
+                SimpleNamespace(id="p2", payload={"doc_id": "orphan-a"}),
+                SimpleNamespace(id="p3", payload={"doc_id": "orphan-b"}),
+            ],
+            None,
+        ),
+        delete=lambda **kwargs: deleted.append(kwargs) or None,
+    )
+
+    with patch("app.services.collection_service.collection_exists", return_value=True), \
+         patch("app.services.collection_service.MetadataStore", return_value=store), \
+         patch("app.services.collection_service.get_client", return_value=fake_client):
+        result = collection_service.prune_orphan_points("c1")
+
+    assert result["orphan_doc_ids"] == ["orphan-a", "orphan-b"]
+    assert result["points_removed"] == 2
+    assert deleted[0]["points_selector"].points == ["p2", "p3"]
+
+
+def test_prune_orphan_points_dry_run_does_not_delete(tmp_path) -> None:
+    from app.storage.metadata_store import MetadataStore
+
+    store = MetadataStore(db_path=str(tmp_path / "dry.db"))
+    store.init_schema()
+    fake_client = SimpleNamespace(
+        scroll=lambda **_: ([SimpleNamespace(id="p1", payload={"doc_id": "orphan"})], None),
+        delete=lambda **_: (_ for _ in ()).throw(AssertionError("delete should not be called")),
+    )
+
+    with patch("app.services.collection_service.collection_exists", return_value=True), \
+         patch("app.services.collection_service.MetadataStore", return_value=store), \
+         patch("app.services.collection_service.get_client", return_value=fake_client):
+        result = collection_service.prune_orphan_points("c1", dry_run=True)
+
+    assert result["dry_run"] is True
+    assert result["points_removed"] == 0
+    assert result["orphan_point_count"] == 1

@@ -4,6 +4,8 @@ from __future__ import annotations
 
 from typing import Any
 
+from qdrant_client.http import models as qmodels
+
 from app.core.exceptions import CollectionNotFound, DocumentNotFound
 from app.core.logging import logger
 from app.retrieval.embedder import estimate_vector_dim
@@ -79,6 +81,75 @@ def delete_document(collection: str, doc_id: str, store: MetadataStore | None = 
     }
 
 
+def prune_orphan_points(collection: str, *, dry_run: bool = False, store: MetadataStore | None = None) -> dict[str, Any]:
+    """删除 Qdrant 中已无 SQLite metadata 对应记录的孤儿 points。"""
+    if not collection_exists(collection):
+        raise CollectionNotFound(f"collection {collection} not found")
+
+    store = store or MetadataStore()
+    visible_doc_ids = _load_visible_doc_ids(collection, store)
+    client = get_client()
+
+    orphan_point_ids: list[Any] = []
+    orphan_doc_ids: set[str] = set()
+    next_offset: Any | None = None
+    scanned = 0
+
+    while True:
+        points, next_offset = client.scroll(
+            collection_name=collection,
+            limit=10000,
+            offset=next_offset,
+            with_payload=True,
+            with_vectors=False,
+        )
+        scanned += len(points)
+        for point in points:
+            payload = getattr(point, "payload", None) or {}
+            doc_id = payload.get("doc_id") if isinstance(payload, dict) else None
+            if doc_id not in visible_doc_ids:
+                orphan_point_ids.append(point.id)
+                orphan_doc_ids.add(str(doc_id or "<missing>"))
+        if next_offset is None:
+            break
+
+    points_removed = 0
+    if orphan_point_ids and not dry_run:
+        client.delete(
+            collection_name=collection,
+            points_selector=qmodels.PointIdsList(points=orphan_point_ids),
+        )
+        points_removed = len(orphan_point_ids)
+
+    result = {
+        "collection": collection,
+        "dry_run": dry_run,
+        "scanned_points": scanned,
+        "visible_document_count": len(visible_doc_ids),
+        "orphan_doc_ids": sorted(orphan_doc_ids),
+        "orphan_point_count": len(orphan_point_ids),
+        "points_removed": points_removed,
+    }
+    logger.info(
+        f"pruned orphan points collection={collection} dry_run={dry_run} "
+        f"scanned={scanned} orphan_points={len(orphan_point_ids)} removed={points_removed}"
+    )
+    return result
+
+
+def _load_visible_doc_ids(collection: str, store: MetadataStore) -> set[str]:
+    page = 1
+    page_size = 1000
+    visible: set[str] = set()
+    while True:
+        total, docs = store.list_documents(collection, page=page, page_size=page_size)
+        visible.update(doc.doc_id for doc in docs)
+        if len(visible) >= total or not docs:
+            break
+        page += 1
+    return visible
+
+
 def _active_embedding_model() -> str:
     from app.core.config import settings
 
@@ -95,5 +166,6 @@ __all__ = [
     "delete_document",
     "list_all",
     "list_documents",
+    "prune_orphan_points",
     "remove",
 ]

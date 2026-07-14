@@ -61,6 +61,7 @@ def test_collection_detail_lists_documents(client: TestClient) -> None:
     assert response.status_code == 200
     assert "abc123" in response.text
     assert "demo.md" in response.text
+    assert "清理残留向量" in response.text
 
 
 def test_retrieve_debug_page_renders(client: TestClient) -> None:

@@ -35,6 +35,14 @@ async def delete_collection_endpoint(name: str) -> ApiResponse[dict[str, Any]]:
     return ApiResponse.ok(collection_service.remove(name))
 
 
+@router.post("/{name}/prune-orphans")
+async def prune_orphan_points_endpoint(
+    name: str,
+    dry_run: bool = Query(default=False),
+) -> ApiResponse[dict[str, Any]]:
+    return ApiResponse.ok(collection_service.prune_orphan_points(name, dry_run=dry_run))
+
+
 @router.get("/{name}/documents")
 async def list_documents_endpoint(
     name: str,
@@ -57,4 +65,5 @@ __all__ = [
     "delete_document_endpoint",
     "list_collections_endpoint",
     "list_documents_endpoint",
+    "prune_orphan_points_endpoint",
 ]

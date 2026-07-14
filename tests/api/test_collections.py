@@ -67,3 +67,35 @@ def test_delete_document(client: TestClient) -> None:
         response = client.delete("/collections/c1/documents/d1")
     assert response.status_code == 200
     assert response.json()["data"]["points_removed"] == 5
+
+
+def test_prune_orphan_points(client: TestClient) -> None:
+    with patch("app.api.collections.collection_service.prune_orphan_points") as mock_prune:
+        mock_prune.return_value = {
+            "collection": "c1",
+            "dry_run": False,
+            "orphan_doc_ids": ["old"],
+            "orphan_point_count": 3,
+            "points_removed": 3,
+        }
+        response = client.post("/collections/c1/prune-orphans")
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["data"]["points_removed"] == 3
+    mock_prune.assert_called_once_with("c1", dry_run=False)
+
+
+def test_prune_orphan_points_dry_run(client: TestClient) -> None:
+    with patch("app.api.collections.collection_service.prune_orphan_points") as mock_prune:
+        mock_prune.return_value = {
+            "collection": "c1",
+            "dry_run": True,
+            "orphan_doc_ids": ["old"],
+            "orphan_point_count": 3,
+            "points_removed": 0,
+        }
+        response = client.post("/collections/c1/prune-orphans?dry_run=true")
+
+    assert response.status_code == 200
+    mock_prune.assert_called_once_with("c1", dry_run=True)
