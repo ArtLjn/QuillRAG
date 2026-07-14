@@ -20,6 +20,7 @@ class ChunkingStrategy(str, Enum):
     STRUCTURE_AWARE = "structure_aware"
     SEMANTIC = "semantic"
     FIXED = "fixed"
+    MARKDOWN_STRUCTURE = "markdown_structure"
 
 
 class RetrieveFilters(BaseModel):

@@ -16,7 +16,7 @@ def select_default_strategy(file_type: str) -> ChunkingStrategy:
     if normalized == "pdf":
         return ChunkingStrategy.STRUCTURE_AWARE
     if normalized in {"md", "markdown"}:
-        return ChunkingStrategy.SEMANTIC
+        return ChunkingStrategy.MARKDOWN_STRUCTURE
     return ChunkingStrategy.FIXED
 
 
@@ -44,6 +44,12 @@ def chunk_with_strategy(
         from app.parser.chunker.semantic import chunk as do_chunk
 
         return do_chunk(chunks)
+
+    if strategy == ChunkingStrategy.MARKDOWN_STRUCTURE:
+        from app.parser.chunker.markdown_structure import chunk as do_chunk
+
+        max_chars = options.get("max_chars")
+        return do_chunk(chunks, max_chars=max_chars) if max_chars else do_chunk(chunks)
 
     if strategy == ChunkingStrategy.FIXED:
         from app.parser.chunker.fixed import chunk as do_chunk

@@ -24,7 +24,7 @@ def _mk(content: str, *, category: str = "paragraph", path: list[str] | None = N
 
 def test_select_default_strategy_matches_file_type() -> None:
     assert select_default_strategy("pdf") == ChunkingStrategy.STRUCTURE_AWARE
-    assert select_default_strategy("md") == ChunkingStrategy.SEMANTIC
+    assert select_default_strategy("md") == ChunkingStrategy.MARKDOWN_STRUCTURE
     assert select_default_strategy("txt") == ChunkingStrategy.FIXED
 
 
@@ -56,6 +56,43 @@ def test_semantic_chunker_groups_by_similarity() -> None:
     assert all(c.metadata.category == "paragraph" for c in chunks)
 
 
+def test_markdown_structure_does_not_cross_heading_boundary() -> None:
+    from app.parser.chunker.markdown_structure import chunk as markdown_structure_chunk
+
+    raw = [
+        _mk("# A", category="title", path=["A"], idx=0),
+        _mk("A 段落一。", path=["A"], idx=1),
+        _mk("A 段落二。", path=["A"], idx=2),
+        _mk("## B", category="title", path=["A", "B"], idx=3),
+        _mk("B 段落。", path=["A", "B"], idx=4),
+    ]
+
+    chunks = markdown_structure_chunk(raw)
+
+    a_chunks = [chunk for chunk in chunks if chunk.metadata.heading_path == ["A"]]
+    b_chunks = [chunk for chunk in chunks if chunk.metadata.heading_path == ["A", "B"]]
+    assert any("A 段落一" in chunk.content and "A 段落二" in chunk.content for chunk in a_chunks)
+    assert all("B 段落" not in chunk.content for chunk in a_chunks)
+    assert any("B 段落" in chunk.content for chunk in b_chunks)
+
+
+def test_markdown_structure_keeps_table_and_code_atomic() -> None:
+    from app.parser.chunker.markdown_structure import chunk as markdown_structure_chunk
+
+    raw = [
+        _mk("# A", category="title", path=["A"], idx=0),
+        _mk("| A | B |\n|---|---|\n| 1 | 2 |", category="table", path=["A"], idx=1),
+        _mk("```bash\necho ok\n```", category="code", path=["A"], idx=2),
+    ]
+
+    chunks = markdown_structure_chunk(raw)
+
+    table = next(chunk for chunk in chunks if chunk.metadata.category == "table")
+    code = next(chunk for chunk in chunks if chunk.metadata.category == "code")
+    assert table.content == "| A | B |\n|---|---|\n| 1 | 2 |"
+    assert code.content == "```bash\necho ok\n```"
+
+
 def test_chunk_with_strategy_unknown_falls_back_to_fixed() -> None:
     raw = [_mk("内容" * 400)]
     chunks = chunk_with_strategy(raw, ChunkingStrategy.FIXED, options={"chunk_size": 200, "chunk_overlap": 20})
@@ -72,3 +109,15 @@ def test_cleaner_removes_ocr_noise_and_merges_short() -> None:
     assert all("□" not in c.content and "■" not in c.content for c in cleaned)
     assert len(cleaned) <= len(raw)
     assert [c.metadata.chunk_index for c in cleaned] == list(range(len(cleaned)))
+
+
+def test_cleaner_preserves_table_and_code_newlines() -> None:
+    raw = [
+        _mk("| A | B |\n|---|---|\n| 1 | 2 |", category="table", idx=0),
+        _mk("```bash\n  echo ok\n```", category="code", idx=1),
+    ]
+
+    cleaned = clean_chunks(raw)
+
+    assert cleaned[0].content == "| A | B |\n|---|---|\n| 1 | 2 |"
+    assert cleaned[1].content == "```bash\n  echo ok\n```"

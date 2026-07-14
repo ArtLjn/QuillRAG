@@ -54,7 +54,7 @@
 | `file` | file | 二选一 | 原始文档（PDF 上传文件） |
 | `text` | string | 二选一 | TXT / MD 可直接传文本 |
 | `file_type` | string | 否 | `pdf` / `md` / `txt`；未传则按 filename/content-type 推断 |
-| `strategy` | string | 否 | `semantic` / `fixed` / `structure_aware` |
+| `strategy` | string | 否 | `markdown_structure` / `semantic` / `fixed` / `structure_aware` |
 | `chunk_size` | int | 否 | 仅 `fixed` 生效，默认 500 |
 | `chunk_overlap` | int | 否 | 默认 50 |
 | `source` | string | 否 | 文档来源标识 |

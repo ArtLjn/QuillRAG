@@ -93,8 +93,8 @@ PDF bytes
    │   • logic_idx: 跨页全局连续序号(还原阅读顺序)
    │   • prev_view_id/next_view_id: 同 category 邻居(用于扩窗)
    ▼
-[5] Chunker 三选一(fixed / semantic / structure_aware)
-   │   默认 structure_aware: 同标题下段落聚合,超 800 字按句分裂
+[5] Chunker 四选一(fixed / semantic / structure_aware / markdown_structure)
+   │   PDF 默认 structure_aware；Markdown 默认 markdown_structure
    ▼
 [6] 幂等检查: md5(content) + doc_id 查 SQLite
    │   • 已存在且 hash 相同 → return noop(省 embedding 成本)
