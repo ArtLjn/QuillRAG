@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import asyncio
 import os
 import sys
 from pathlib import Path
@@ -16,6 +17,14 @@ os.environ.setdefault("QDRANT_URL", "http://localhost:6333")
 os.environ.setdefault("METADATA_DB_PATH", ":memory:")
 # 测试环境强制关闭鉴权（避免 .env 中 AUTH_ENABLED=true 导致所有 API 401）
 os.environ.setdefault("AUTH_ENABLED", "false")
+
+
+@pytest.fixture(autouse=True)
+def ensure_event_loop() -> None:
+    try:
+        asyncio.get_event_loop()
+    except RuntimeError:
+        asyncio.set_event_loop(asyncio.new_event_loop())
 
 
 @pytest.fixture()

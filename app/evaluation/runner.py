@@ -15,6 +15,7 @@ from app.services.retrieve_service import retrieve
 DEFAULT_GOLDEN_PATH = Path("fixtures/evaluation/retrieval_itsm_seed.jsonl")
 DEFAULT_REPORT_DIR = Path("data/evaluation/reports")
 DEFAULT_K_VALUES = [1, 3, 5, 10]
+DEFAULT_DIAGNOSTIC_K = 50
 
 
 @dataclass
@@ -90,10 +91,12 @@ async def run_retrieval_evaluation(
     mode: RetrieveMode | str = RetrieveMode.HYBRID,
     top_k: int = 10,
     k_values: list[int] | None = None,
+    diagnostic_k: int = DEFAULT_DIAGNOSTIC_K,
 ) -> dict[str, Any]:
     """运行检索评测并写入 JSON 报告。"""
     actual_mode = RetrieveMode(mode)
     ks = k_values or DEFAULT_K_VALUES
+    diagnostic_top_k = max(top_k, diagnostic_k)
     samples = load_golden_set(dataset_path)
     evaluated_samples: list[dict[str, Any]] = []
     metric_inputs: list[tuple[list[str], set[str]]] = []
@@ -114,6 +117,12 @@ async def run_retrieval_evaluation(
         alias_metric_inputs = _alias_metric_inputs(retrieved_keys, retrieved_aliases, sample.relevant)
         metric_inputs[-1] = alias_metric_inputs
         first_hit_rank = _first_hit_rank_by_alias(retrieved_aliases, sample.relevant)
+        diagnostics = await _build_diagnostics(
+            sample=sample,
+            final_aliases=retrieved_aliases,
+            final_top_k=top_k,
+            diagnostic_k=diagnostic_top_k,
+        )
         evaluated_samples.append(
             {
                 "query": sample.query,
@@ -126,6 +135,7 @@ async def run_retrieval_evaluation(
                 "hit": first_hit_rank is not None,
                 "actual_mode": result_mode.value,
                 "warning": warning,
+                "diagnostics": diagnostics,
             }
         )
 
@@ -138,6 +148,7 @@ async def run_retrieval_evaluation(
         "dataset_path": str(dataset_path),
         "mode": actual_mode.value,
         "top_k": top_k,
+        "diagnostic_k": diagnostic_top_k,
         "k_values": ks,
         "summary": {
             "sample_count": metrics.sample_count,
@@ -173,6 +184,90 @@ def _first_hit_rank_by_alias(retrieved_aliases: list[set[str]], relevant: set[st
     return None
 
 
+async def _build_diagnostics(
+    *,
+    sample: EvaluationSample,
+    final_aliases: list[set[str]],
+    final_top_k: int,
+    diagnostic_k: int,
+) -> dict[str, Any]:
+    diagnostics: dict[str, Any] = {}
+    final_hit = _has_alias_hit(final_aliases, sample.relevant)
+    diagnostics[f"final_top{final_top_k}_hit"] = final_hit
+
+    layer_hits: dict[str, bool] = {}
+    for label, mode in (
+        ("dense", RetrieveMode.VECTOR),
+        ("sparse", RetrieveMode.BM25),
+        ("hybrid", RetrieveMode.HYBRID),
+    ):
+        layer = await _diagnose_layer(sample, mode=mode, diagnostic_k=diagnostic_k)
+        diagnostics.update({f"{label}_{key}": value for key, value in layer.items()})
+        layer_hits[label] = bool(layer.get(f"top{diagnostic_k}_hit", False))
+
+    diagnostics["failure_stage"] = _classify_failure_stage(
+        final_hit=final_hit,
+        dense_hit=layer_hits.get("dense", False),
+        sparse_hit=layer_hits.get("sparse", False),
+        hybrid_hit=layer_hits.get("hybrid", False),
+    )
+    return diagnostics
+
+
+async def _diagnose_layer(
+    sample: EvaluationSample,
+    *,
+    mode: RetrieveMode,
+    diagnostic_k: int,
+) -> dict[str, Any]:
+    try:
+        results, warning, result_mode = await retrieve(
+            query=sample.query,
+            collection=sample.collection,
+            mode=mode,
+            top_k=diagnostic_k,
+            filters=sample.filters or None,
+            use_hyde=sample.use_hyde,
+        )
+    except Exception as exc:
+        return {
+            f"top{diagnostic_k}_hit": False,
+            f"top{diagnostic_k}_count": 0,
+            "actual_mode": None,
+            "warning": None,
+            "error": f"{type(exc).__name__}: {exc}",
+        }
+
+    aliases = [make_result_keys(result) for result in results]
+    return {
+        f"top{diagnostic_k}_hit": _has_alias_hit(aliases, sample.relevant),
+        f"top{diagnostic_k}_count": len(results),
+        "actual_mode": result_mode.value,
+        "warning": warning,
+        "error": None,
+    }
+
+
+def _has_alias_hit(retrieved_aliases: list[set[str]], relevant: set[str]) -> bool:
+    return _first_hit_rank_by_alias(retrieved_aliases, relevant) is not None
+
+
+def _classify_failure_stage(
+    *,
+    final_hit: bool,
+    dense_hit: bool,
+    sparse_hit: bool,
+    hybrid_hit: bool,
+) -> str:
+    if final_hit:
+        return "hit"
+    if hybrid_hit:
+        return "ranking"
+    if dense_hit or sparse_hit:
+        return "fusion"
+    return "retrieval_missing"
+
+
 def _alias_metric_inputs(
     retrieved_keys: list[str],
     retrieved_aliases: list[set[str]],
@@ -202,6 +297,7 @@ def _write_report(report: dict[str, Any], report_dir: Path, finished_at: datetim
 
 __all__ = [
     "DEFAULT_GOLDEN_PATH",
+    "DEFAULT_DIAGNOSTIC_K",
     "DEFAULT_K_VALUES",
     "DEFAULT_REPORT_DIR",
     "EvaluationSample",

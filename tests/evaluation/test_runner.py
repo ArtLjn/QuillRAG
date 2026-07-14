@@ -169,3 +169,57 @@ async def test_run_retrieval_evaluation_matches_source_stem_alias(tmp_path: Path
     assert report["summary"]["metrics"]["recall_at_k"]["1"] == 1.0
     assert report["summary"]["metrics"]["hit_rate"] == 1.0
     assert report["samples"][0]["first_hit_rank"] == 1
+
+
+@pytest.mark.asyncio
+async def test_run_retrieval_evaluation_reports_layered_diagnostics(tmp_path: Path) -> None:
+    golden = tmp_path / "retrieval.jsonl"
+    report_dir = tmp_path / "reports"
+    golden.write_text(
+        json.dumps(
+            {
+                "query": "HTTPS 证书过期导致登录页面打不开，应该更新哪里？",
+                "collection": "ticket_knowledge",
+                "relevant": ["itsm-tls-certificate#0"],
+            },
+            ensure_ascii=False,
+        ),
+        encoding="utf-8",
+    )
+
+    async def fake_retrieve(**kwargs):
+        mode = kwargs["mode"]
+        top_k = kwargs["top_k"]
+        if mode == RetrieveMode.VECTOR:
+            return [
+                RetrieveResult(content="证书更新流程", score=0.8, doc_id="itsm-tls-certificate", chunk_index=0),
+            ], None, RetrieveMode.VECTOR
+        if mode == RetrieveMode.BM25:
+            return [
+                RetrieveResult(content="登录账号排查", score=0.7, doc_id="itsm-login-account", chunk_index=0),
+            ], None, RetrieveMode.BM25
+        if top_k == 1:
+            return [
+                RetrieveResult(content="登录账号排查", score=0.9, doc_id="itsm-login-account", chunk_index=0),
+            ], None, RetrieveMode.HYBRID
+        return [
+            RetrieveResult(content="登录账号排查", score=0.9, doc_id="itsm-login-account", chunk_index=0),
+            RetrieveResult(content="证书更新流程", score=0.8, doc_id="itsm-tls-certificate", chunk_index=0),
+        ], None, RetrieveMode.HYBRID
+
+    with patch("app.evaluation.runner.retrieve", new=AsyncMock(side_effect=fake_retrieve)):
+        report = await run_retrieval_evaluation(
+            dataset_path=golden,
+            report_dir=report_dir,
+            mode=RetrieveMode.HYBRID,
+            top_k=1,
+            k_values=[1],
+            diagnostic_k=3,
+        )
+
+    diagnostics = report["samples"][0]["diagnostics"]
+    assert diagnostics["dense_top3_hit"] is True
+    assert diagnostics["sparse_top3_hit"] is False
+    assert diagnostics["hybrid_top3_hit"] is True
+    assert diagnostics["final_top1_hit"] is False
+    assert diagnostics["failure_stage"] == "ranking"

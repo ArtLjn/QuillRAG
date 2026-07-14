@@ -98,6 +98,67 @@ def test_health_page_renders(client: TestClient) -> None:
     assert "qdrant" in response.text
 
 
+def test_health_page_renders_idle_as_non_error_state(client: TestClient) -> None:
+    with patch("app.ui.router.check_health") as mock_health:
+        from app.core.response import HealthResponse
+
+        mock_health.return_value = HealthResponse(
+            status="ok",
+            components={"qdrant": "ok", "embedder": "ok", "reranker": "idle"},
+        )
+        response = client.get("/ui/health")
+
+    assert response.status_code == 200
+    assert "idle" in response.text
+    assert "懒加载未触发" in response.text
+    assert "bg-red-100 text-red-700\">idle" not in response.text
+
+
+def test_evaluation_page_shows_failure_diagnostics(client: TestClient) -> None:
+    report = {
+        "summary": {
+            "sample_count": 1,
+            "metrics": {
+                "recall_at_k": {"1": 0.0, "5": 0.0},
+                "precision_at_k": {"1": 0.0, "5": 0.0},
+                "ndcg_at_k": {"1": 0.0, "5": 0.0},
+                "mrr": 0.0,
+                "hit_rate": 0.0,
+            },
+        },
+        "mode": "hybrid",
+        "top_k": 1,
+        "diagnostic_k": 3,
+        "k_values": [1, 5],
+        "started_at": "2026-07-10T00:00:00+00:00",
+        "finished_at": "2026-07-10T00:00:01+00:00",
+        "dataset_path": "fixtures/evaluation/retrieval_itsm_seed.jsonl",
+        "report_path": "data/evaluation/reports/retrieval_eval.json",
+        "samples": [
+            {
+                "query": "HTTPS 证书过期导致登录页面打不开，应该更新哪里？",
+                "relevant": ["itsm-tls-certificate#0"],
+                "retrieved": ["itsm-login-account#0"],
+                "hit": False,
+                "diagnostics": {
+                    "dense_top3_hit": True,
+                    "sparse_top3_hit": False,
+                    "hybrid_top3_hit": True,
+                    "final_top1_hit": False,
+                    "failure_stage": "ranking",
+                },
+            }
+        ],
+    }
+    with patch("app.ui.router.load_latest_report", return_value=report):
+        response = client.get("/ui/evaluation")
+
+    assert response.status_code == 200
+    assert "failure_stage" in response.text
+    assert "ranking" in response.text
+    assert "dense_top3_hit" in response.text
+
+
 def test_document_chunks_sorts_by_logic_idx(client: TestClient, monkeypatch: pytest.MonkeyPatch) -> None:
     from types import SimpleNamespace
     from unittest.mock import MagicMock

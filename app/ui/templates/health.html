@@ -23,6 +23,10 @@
         <span class="text-xs px-2 py-0.5 rounded bg-emerald-100 text-emerald-700">ok</span>
         {% elif status == "loading" %}
         <span class="text-xs px-2 py-0.5 rounded bg-amber-100 text-amber-700">loading</span>
+        {% elif status == "idle" %}
+        <span class="text-xs px-2 py-0.5 rounded bg-sky-100 text-sky-700">idle</span>
+        {% elif status == "disabled" %}
+        <span class="text-xs px-2 py-0.5 rounded bg-slate-100 text-slate-600">disabled</span>
         {% else %}
         <span class="text-xs px-2 py-0.5 rounded bg-red-100 text-red-700">{{ status }}</span>
         {% endif %}
@@ -30,7 +34,11 @@
       <div class="text-xs text-slate-500">
         {% if name == "qdrant" %}向量库连通性{% endif %}
         {% if name == "embedder" %}Google gemini-embedding-001{% endif %}
-        {% if name == "reranker" %}BAAI/bge-reranker-v2-m3{% endif %}
+        {% if name == "reranker" %}
+          BAAI/bge-reranker-v2-m3
+          {% if status == "idle" %} · 懒加载未触发，首次重排时加载{% endif %}
+          {% if status == "disabled" %} · 已关闭，按原始分数返回{% endif %}
+        {% endif %}
       </div>
     </div>
     {% endfor %}
