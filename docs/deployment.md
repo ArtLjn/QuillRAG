@@ -1,86 +1,140 @@
-# quillrag 部署指南
+# QuillRAG 部署指南
 
-## 单机部署（推荐毕设演示场景）
+本文档对应当前仓库的 Dockerfile、docker-compose.yml 和 deploy 脚本。
 
-最低配置：4 核 8G，能同时承载 quillrag + Qdrant + 主系统。
+## 推荐方式：Docker Compose
 
-### 步骤
+Docker Compose 会启动两个服务：
 
-1. 克隆与配置
+- `quillrag`：FastAPI 应用，监听 `8001`
+- `qdrant`：本地 Qdrant，监听 `6333` / `6334`
 
-   ```bash
-   cd /path/to/finished
-   # 假设 quillrag/ 已就位
-   cd quillrag
-   cp .env.example .env
-   # 如需调整模型 / 端口，编辑 .env
-   ```
+持久化数据：
 
-2. 启动双服务
+- `qdrant_data`：Qdrant 向量数据
+- `quillrag_data`：SQLite 元数据与 FlashRank 缓存
+- `hf_cache`：Hugging Face / transformers 缓存
 
-   ```bash
-   docker-compose up -d
-   ```
-
-   等待 30-60 秒（首次启动会拉取 BAAI/bge-large-zh-v1.5 与 bge-reranker-v2-m3 模型，约 2GB）。
-
-3. 验证健康
-
-   ```bash
-   curl http://localhost:8001/health
-   ```
-
-   预期返回 `{status: "ok", components: {...}}`。若 `status=degraded`，查看 `docker-compose logs quillrag` 定位。
-
-4. 创建 collection 与入库
-
-   ```bash
-   # 创建 collection
-   curl -X POST http://localhost:8001/collections \
-     -H "Content-Type: application/json" \
-     -d '{"name": "ticket_knowledge", "vector_dim": 1024, "distance": "Cosine"}'
-
-   # 入库 Markdown 文档
-   curl -X POST http://localhost:8001/ingest \
-     -F collection=ticket_knowledge \
-     -F text@- <<'EOF'
-   # 工单处理
-   普通工单 24 小时内响应。
-   ## 紧急工单
-   紧急工单 2 小时内响应。
-   EOF
-
-   # 检索
-   curl -X POST http://localhost:8001/retrieve \
-     -H "Content-Type: application/json" \
-     -d '{"query": "紧急工单多久响应", "collection": "ticket_knowledge", "mode": "hybrid"}'
-   ```
-
-## 资源占用预估
-
-| 组件 | 内存 | 说明 |
-| --- | --- | --- |
-| Qdrant | ~500MB | 毕设 demo 数据（万级 chunk） |
-| quillrag | ~500MB | Embedding 走 HTTP 不占内存 |
-| quillrag + Reranker 模型 | ~2GB | bge-reranker-v2-m3（首次调用时懒加载） |
-| 主系统 ai-agent-learning | ~1GB | 不含主系统 LLM 调用 |
-
-合计 4 核 4G 可承载（Reranker 未触发时）；Reranker 触发后峰值约 6G。
-
-## 模型预下载
-
-Embedding 走在线 Google API，无需本地权重。Reranker 仍为本地 Cross-Encoder，Dockerfile 已包含预下载：
+### 首次部署
 
 ```bash
-# 本地开发预热 reranker 缓存
-python -c "from sentence_transformers import CrossEncoder; CrossEncoder('BAAI/bge-reranker-v2-m3')"
+cp .env.example .env
 ```
 
-缓存目录可通过 `HF_HOME` 环境变量调整。
+至少填写：
+
+```dotenv
+EMBEDDING_API_KEY=...
+```
+
+公网部署建议同时开启鉴权：
+
+```dotenv
+AUTH_ENABLED=true
+AUTH_API_KEY=...
+AUTH_USERNAME=admin
+AUTH_PASSWORD_HASH=...
+AUTH_SESSION_SECRET=...
+```
+
+启动：
+
+```bash
+bash deploy/docker-deploy.sh up
+```
+
+访问：
+
+- UI：http://127.0.0.1:8001/ui/
+- Swagger：http://127.0.0.1:8001/docs
+- 健康检查：http://127.0.0.1:8001/health
+
+### 常用命令
+
+```bash
+bash deploy/docker-deploy.sh status
+bash deploy/docker-deploy.sh logs
+bash deploy/docker-deploy.sh qdrant-logs
+bash deploy/docker-deploy.sh health
+bash deploy/docker-deploy.sh restart
+bash deploy/docker-deploy.sh down
+```
+
+删除所有本地容器数据：
+
+```bash
+bash deploy/docker-deploy.sh reset
+```
+
+## 本地开发部署
+
+```bash
+python3.11 -m venv .venv
+source .venv/bin/activate
+pip install -r requirements.txt
+cp .env.example .env
+```
+
+如果本机跑 app、Docker 只跑 Qdrant：
+
+```bash
+docker compose up -d qdrant
+```
+
+`.env` 中使用：
+
+```dotenv
+QDRANT_URL=http://localhost:6333
+QDRANT_API_KEY=
+```
+
+启动应用：
+
+```bash
+uvicorn app.main:app --reload --port 8001
+```
+
+## 运行配置
+
+关键配置来源：
+
+- `.env.example`：完整配置模板
+- `app/core/config.py`：默认值与类型
+- `docker-compose.yml`：容器部署覆盖项
+
+Docker Compose 会强制覆盖：
+
+```yaml
+QDRANT_URL: http://qdrant:6333
+METADATA_DB_PATH: /app/data/rag_metadata.db
+RERANKER_FLASHRANK_CACHE_DIR: /app/data/flashrank_cache
+```
+
+因此复制 `.env.example` 后，不需要为内置 Qdrant 填 `QDRANT_API_KEY`。
+
+## 重排器选择
+
+默认 `RERANKER_ENABLED=false`，不会加载重排模型。
+
+开启方式：
+
+```dotenv
+RERANKER_ENABLED=true
+RERANKER_PROVIDER=flashrank
+```
+
+可选 provider：
+
+| Provider | 说明 | 适用场景 |
+| --- | --- | --- |
+| `flashrank` | 本地 ONNX 推理，模型约 18-120MB | 轻量生产部署 |
+| `jina` | 在线 Jina rerank API | 不想维护本地模型 |
+| `llm` | OpenAI 兼容 LLM 网关打分 | 复用主系统 LLM |
+| `local` | `BAAI/bge-reranker-v2-m3`，模型较大 | 实验或精度对比 |
 
 ## OCR 系统依赖
 
-PDF 解析中的 OCR 兜底依赖 Tesseract，必须安装中文语言包：
+Docker 镜像已安装 Tesseract OCR 和中文语言包。本地开发需要自行安装：
 
 | 系统 | 命令 |
 | --- | --- |
@@ -88,51 +142,32 @@ PDF 解析中的 OCR 兜底依赖 Tesseract，必须安装中文语言包：
 | Ubuntu/Debian | `apt install tesseract-ocr tesseract-ocr-chi-sim tesseract-ocr-chi-tra` |
 | Alpine | `apk add tesseract-ocr tesseract-ocr-data-chi_sim` |
 
-Docker 镜像已在 Dockerfile 中安装。
+## 健康检查语义
 
-## 与主系统联调
+`/health` 返回 HTTP 200，并在 body 中体现整体状态：
 
-主系统侧通过 `tools/rag_client.py` HTTP 调用（待实现）：
+- `ok`：可用
+- `degraded`：存在 `failed` 或 `unavailable` 组件
 
-```python
-# 主系统端代码示例（下一个 change 实现完整 client）
-import httpx
+组件状态：
 
-class RagClient:
-    def __init__(self, base_url: str = "http://localhost:8001", timeout: int = 10):
-        self.base_url = base_url
-        self.timeout = timeout
-
-    async def retrieve(self, query: str, collection: str, mode: str = "hybrid"):
-        async with httpx.AsyncClient(timeout=self.timeout) as client:
-            response = await client.post(
-                f"{self.base_url}/retrieve",
-                json={"query": query, "collection": collection, "mode": mode},
-            )
-            response.raise_for_status()
-            return response.json()
-```
-
-主系统降级策略：超时 / 5xx / `/health` degraded → 走「无 RAG 增强」分支（详见主系统 design-spec 第 13 章）。
+- `ok`：组件就绪
+- `idle`：懒加载未触发，属于正常状态
+- `loading`：后台加载中
+- `disabled`：用户主动关闭，常见于默认重排器
+- `failed` / `unavailable`：需要排查
 
 ## 排查清单
 
 | 现象 | 排查方向 |
 | --- | --- |
-| `/health` qdrant=unavailable | 检查 Qdrant 容器：`docker-compose logs qdrant` |
-| `/retrieve` 慢 | 看 quillrag 日志，确认 Embedder 已加载；考虑关闭 HyDE |
-| `/ingest` 503 | Qdrant 不可用或网络分区 |
-| `/parse` 422 PARSE_FAILED | PDF 文件损坏，或 PyMuPDF 未正确安装 |
-| OCR 中文乱码 | tesseract-ocr-chi-sim 未装 |
+| `/health` 中 `qdrant=unavailable` | `bash deploy/docker-deploy.sh qdrant-logs` |
+| `/health` 中 `embedder=failed` | 检查 `EMBEDDING_API_KEY`、`EMBEDDING_BASE_URL`、网络连通性 |
+| `/retrieve` 返回降级 warning | 查看 `actual_mode` 与日志，确认 vector/BM25 是否有一侧失败 |
+| `/ingest` 失败 | 检查 Qdrant collection 维度是否等于 `EMBEDDING_DIM` |
+| PDF 解析质量低 | 配置 `MINERU_API_TOKEN`，或检查 OCR 依赖 |
+| UI 无法登录 | 确认 `AUTH_PASSWORD_HASH` 和 `AUTH_SESSION_SECRET` 已配置 |
 
-## 数据卷与备份
+## systemd 脚本
 
-- Qdrant 数据：docker volume `qdrant_data`，备份用 `docker run --rm -v qdrant_data:/data -v $(pwd):/backup alpine tar czf /backup/qdrant.tar.gz /data`
-- SQLite 元数据：`quillrag/data/rag_metadata.db`（容器内路径，建议挂载到 host）
-
-## 关停与回滚
-
-```bash
-docker-compose down        # 停服务，保留数据
-docker-compose down -v     # 停服务并删除数据卷（清空所有知识库）
-```
+`deploy/install.sh`、`deploy/server-sync.sh`、`deploy/server-ctl.sh` 保留用于远程 systemd 部署场景。新部署优先使用 Docker Compose；只有需要接入已有服务器 Python 环境时再使用 systemd 脚本。
