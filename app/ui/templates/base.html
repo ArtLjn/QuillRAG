@@ -6,16 +6,161 @@
   <title>{{ title|default("quillrag") }}</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <style>
+    :root {
+      --qr-page: #1b1d1e;
+      --qr-nav: #0b1222;
+      --qr-surface: #15191a;
+      --qr-surface-muted: #1a1e1f;
+      --qr-surface-raised: #111617;
+      --qr-border: #1f4258;
+      --qr-border-muted: #263238;
+      --qr-text: #e8e6e3;
+      --qr-text-soft: #bbb6af;
+      --qr-text-muted: #918c86;
+      --qr-primary: #2514c9;
+      --qr-primary-hover: #3221df;
+      --qr-success-bg: #056244;
+      --qr-success-text: #7ee8c8;
+    }
+
+    html { color-scheme: dark; }
+    body.bg-slate-50 {
+      background: var(--qr-page) !important;
+      color: var(--qr-text) !important;
+    }
+    nav.bg-slate-900 {
+      background: var(--qr-nav) !important;
+      box-shadow: none !important;
+    }
+    main { min-height: calc(100vh - 176px); }
+
+    .bg-white {
+      background-color: var(--qr-surface) !important;
+      border-color: var(--qr-border) !important;
+      box-shadow: none !important;
+    }
+    .bg-slate-50,
+    .bg-slate-100 {
+      background-color: var(--qr-surface-muted) !important;
+    }
+    .hover\:bg-slate-50:hover,
+    .hover\:bg-slate-100:hover,
+    tr.hover\:bg-slate-50:hover {
+      background-color: var(--qr-surface-raised) !important;
+    }
+    .border,
+    .border-slate-100,
+    .border-slate-200,
+    .border-slate-300 {
+      border-color: var(--qr-border-muted) !important;
+    }
+    .border-dashed,
+    .rounded-lg.border,
+    .bg-white.border {
+      border-color: var(--qr-border) !important;
+    }
+    .divide-slate-100 > :not([hidden]) ~ :not([hidden]) {
+      border-color: var(--qr-border-muted) !important;
+    }
+
+    .text-slate-900,
+    .text-slate-800,
+    .text-slate-700 {
+      color: var(--qr-text) !important;
+    }
+    .text-slate-600,
+    .text-slate-500 {
+      color: var(--qr-text-soft) !important;
+    }
+    .text-slate-400 {
+      color: var(--qr-text-muted) !important;
+    }
+    .hover\:text-slate-700:hover,
+    .hover\:text-slate-300:hover {
+      color: var(--qr-text) !important;
+    }
+
+    .bg-indigo-600,
+    .bg-indigo-700 {
+      background-color: var(--qr-primary) !important;
+    }
+    .hover\:bg-indigo-500:hover,
+    .hover\:bg-indigo-700:hover {
+      background-color: var(--qr-primary-hover) !important;
+    }
+    .text-indigo-600,
+    .text-indigo-700 {
+      color: #8b82ff !important;
+    }
+
+    input,
+    select,
+    textarea {
+      background: #111617 !important;
+      border-color: var(--qr-border-muted) !important;
+      color: var(--qr-text) !important;
+    }
+    input::placeholder,
+    textarea::placeholder {
+      color: var(--qr-text-muted) !important;
+    }
+    input[type="checkbox"] {
+      accent-color: var(--qr-primary);
+    }
+    pre,
+    code {
+      color: var(--qr-text-soft);
+    }
+
+    .bg-emerald-100,
+    .bg-emerald-50 {
+      background-color: var(--qr-success-bg) !important;
+    }
+    .text-emerald-700,
+    .text-emerald-600 {
+      color: var(--qr-success-text) !important;
+    }
+    .bg-amber-100,
+    .bg-amber-50 {
+      background-color: #4f3510 !important;
+    }
+    .text-amber-700,
+    .text-amber-600 {
+      color: #f6c36a !important;
+    }
+    .bg-rose-50,
+    .bg-red-50,
+    .bg-red-100 {
+      background-color: #4b1f25 !important;
+    }
+    .border-rose-100,
+    .border-rose-200,
+    .border-red-200 {
+      border-color: #7f2b34 !important;
+    }
+    .text-rose-700,
+    .text-rose-600,
+    .text-rose-500,
+    .text-red-700 {
+      color: #fb8f9a !important;
+    }
+    .bg-sky-100 {
+      background-color: #12344a !important;
+    }
+    .text-sky-700 {
+      color: #8bd3ff !important;
+    }
+
     .chunk-content { white-space: pre-wrap; word-break: break-word; }
     .badge { display: inline-block; padding: 1px 6px; border-radius: 4px; font-size: 11px; font-weight: 600; }
-    .badge-title { background: #fef3c7; color: #92400e; }
-    .badge-paragraph { background: #dbeafe; color: #1e40af; }
-    .badge-table { background: #fce7f3; color: #9d174d; }
-    .badge-formula { background: #e0e7ff; color: #3730a3; }
-    .badge-figure { background: #dcfce7; color: #166534; }
-    .badge-list_item { background: #f3e8ff; color: #6b21a8; }
-    .badge-code { background: #f1f5f9; color: #475569; }
-    .badge-header, .badge-footer { background: #fee2e2; color: #991b1b; }
+    .badge-title { background: #4f3510; color: #f7d083; }
+    .badge-paragraph { background: #12344a; color: #a8d8ff; }
+    .badge-table { background: #4b1f3a; color: #f3a2cf; }
+    .badge-formula { background: #29225e; color: #c3bdff; }
+    .badge-figure { background: #0f4633; color: #8be6c3; }
+    .badge-list_item { background: #352154; color: #d7b6ff; }
+    .badge-code { background: #263238; color: #c9d0d3; }
+    .badge-header, .badge-footer { background: #4b1f25; color: #ffadb5; }
   </style>
 </head>
 <body class="bg-slate-50 text-slate-800 min-h-screen">
